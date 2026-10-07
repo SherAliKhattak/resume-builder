@@ -140,7 +140,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black.withValues(alpha: 0.04),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: const BorderRadius.all(Radius.circular(AppRadii.lg)),
           side: BorderSide(color: fieldBorder),
         ),
         margin: EdgeInsets.zero,
@@ -159,23 +159,23 @@ class AppTheme {
           vertical: 16,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: const BorderRadius.all(Radius.circular(AppRadii.lg)),
           borderSide: BorderSide(color: fieldBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: const BorderRadius.all(Radius.circular(AppRadii.lg)),
           borderSide: BorderSide(color: fieldBorder),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-          borderSide: const BorderSide(color: AppColors.seed, width: 1.4),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.lg)),
+          borderSide: BorderSide(color: AppColors.seed, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: const BorderRadius.all(Radius.circular(AppRadii.lg)),
           borderSide: BorderSide(color: scheme.error),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
+          borderRadius: const BorderRadius.all(Radius.circular(AppRadii.lg)),
           borderSide: BorderSide(color: scheme.error, width: 1.4),
         ),
         hintStyle: textTheme.bodyLarge?.copyWith(
@@ -194,8 +194,8 @@ class AppTheme {
           color: scheme.onInverseSurface,
           fontFamily: fontFamily,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -227,17 +227,17 @@ class AppTheme {
         side: BorderSide(color: fieldBorder),
         backgroundColor: scheme.surface,
         selectedColor: scheme.primary.withValues(alpha: isDark ? 0.18 : 0.08),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.full),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.full)),
         ),
       ),
-      sliderTheme: SliderThemeData(
+      sliderTheme: const SliderThemeData(
         trackHeight: 3,
-        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+        thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
+        overlayShape: RoundSliderOverlayShape(overlayRadius: 16),
       ),
-      progressIndicatorTheme: ProgressIndicatorThemeData(
-        borderRadius: BorderRadius.circular(AppRadii.full),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        borderRadius: BorderRadius.all(Radius.circular(AppRadii.full)),
         linearMinHeight: 4,
       ),
       bottomSheetTheme: BottomSheetThemeData(
@@ -251,26 +251,26 @@ class AppTheme {
           ),
         ),
       ),
-      popupMenuTheme: PopupMenuThemeData(
+      popupMenuTheme: const PopupMenuThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
         ),
       ),
       listTileTheme: ListTileThemeData(
         iconColor: scheme.onSurfaceVariant,
         contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadii.md)),
         ),
       ),
-      expansionTileTheme: ExpansionTileThemeData(
-        shape: const Border(),
-        collapsedShape: const Border(),
-        tilePadding: const EdgeInsets.symmetric(
+      expansionTileTheme: const ExpansionTileThemeData(
+        shape: Border(),
+        collapsedShape: Border(),
+        tilePadding: EdgeInsets.symmetric(
           horizontal: AppSpacing.screenPadding,
         ),
-        childrenPadding: const EdgeInsets.fromLTRB(
+        childrenPadding: EdgeInsets.fromLTRB(
           AppSpacing.screenPadding,
           0,
           AppSpacing.screenPadding,
