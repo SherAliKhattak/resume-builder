@@ -26,6 +26,7 @@ class SectionsPage extends StatelessWidget {
           body: ReorderableListView.builder(
             padding: const EdgeInsets.all(AppSpacing.screenPadding),
             itemCount: order.length,
+            // ignore: deprecated_member_use
             onReorder: cubit.reorder,
             proxyDecorator: (child, index, animation) {
               return AnimatedBuilder(

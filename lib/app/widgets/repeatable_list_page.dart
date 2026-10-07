@@ -52,6 +52,7 @@ class RepeatableListPage<T> extends StatelessWidget {
               AppSpacing.lg,
             ),
             itemCount: items.length,
+            // ignore: deprecated_member_use
             onReorder: onReorder,
             proxyDecorator: (child, index, animation) {
               return AnimatedBuilder(
