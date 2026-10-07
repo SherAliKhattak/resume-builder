@@ -38,68 +38,66 @@ class ProjectsPage extends StatelessWidget {
     ProjectsCubit cubit,
     Project item,
   ) async {
-    var name = item.name;
-    var link = item.link;
-    var description = item.description;
-    var tech = item.techStack;
-    var bullets = item.bullets.join('\n');
-    await showFormSheet(
-      context: context,
-      title: item.id == 0 ? 'Add project' : 'Edit project',
-      primaryLabel: 'Done',
-      fields: [
-        AppTextField(
-          label: 'Name',
-          hint: 'Garden Log',
-          initialValue: name,
-          onChanged: (value) => name = value,
+    final name = TextEditingController(text: item.name);
+    final link = TextEditingController(text: item.link);
+    final description = TextEditingController(text: item.description);
+    final tech = TextEditingController(text: item.techStack);
+    final bullets = TextEditingController(text: item.bullets.join('\n'));
+
+    try {
+      await showFormSheet(
+        context: context,
+        title: item.id == 0 ? 'Add project' : 'Edit project',
+        primaryLabel: 'Done',
+        fields: [
+          AppTextField(
+            label: 'Name',
+            hint: 'Garden Log',
+            controller: name,
+          ),
+          AppTextField(
+            label: 'Link',
+            hint: 'github.com/you/garden-log',
+            controller: link,
+            keyboardType: TextInputType.url,
+            textCapitalization: TextCapitalization.none,
+          ),
+          AppTextField(
+            label: 'Description',
+            hint: 'A small app for tracking plants.',
+            controller: description,
+            maxLines: 3,
+            minLines: 2,
+          ),
+          AppTextField(
+            label: 'Tech',
+            hint: 'Flutter, SQLite',
+            controller: tech,
+          ),
+          BulletField(controller: bullets),
+        ],
+        onSave: () => cubit.save(
+          item.copyWith(
+            name: name.text.trim(),
+            link: link.text.trim(),
+            description: description.text.trim(),
+            techStack: tech.text.trim(),
+            bullets: bulletsFromText(bullets.text),
+          ),
         ),
-        AppTextField(
-          label: 'Link',
-          hint: 'github.com/you/garden-log',
-          initialValue: link,
-          onChanged: (value) => link = value,
-          keyboardType: TextInputType.url,
-          textCapitalization: TextCapitalization.none,
-        ),
-        AppTextField(
-          label: 'Description',
-          hint: 'A small app for tracking plants.',
-          initialValue: description,
-          onChanged: (value) => description = value,
-          maxLines: 3,
-          minLines: 2,
-        ),
-        AppTextField(
-          label: 'Tech',
-          hint: 'Flutter, SQLite',
-          initialValue: tech,
-          onChanged: (value) => tech = value,
-        ),
-        BulletField(
-          initialValue: bullets,
-          onChanged: (value) => bullets = value,
-        ),
-      ],
-      onSave: () => cubit.save(
-        item.copyWith(
-          name: name.trim(),
-          link: link.trim(),
-          description: description.trim(),
-          techStack: tech.trim(),
-          bullets: bulletsFromText(bullets),
-        ),
-      ),
-      onDelete: item.id == 0
-          ? null
-          : () {
-              cubit.remove(item);
-              showUndoBar(
-                context: context,
-                message: 'Removed',
-                onUndo: cubit.undoRemove,
-              );
-            },
-    );
+        onDelete: item.id == 0
+            ? null
+            : () {
+                cubit.remove(item);
+                showUndoBar(
+                  context: context,
+                  message: 'Removed',
+                  onUndo: cubit.undoRemove,
+                );
+              },
+      );
+    } finally {
+      disposeSheetControllers([name, link, description, tech, bullets]);
+    }
   }
 }

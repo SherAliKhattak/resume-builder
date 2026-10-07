@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_spacing.dart';
 import 'app_button.dart';
+import 'app_canvas.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
@@ -23,25 +24,14 @@ class EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(AppRadii.lg),
-            ),
-            child: Icon(
-              Icons.note_add_outlined,
-              color: scheme.onPrimaryContainer,
-            ),
-          ),
+          const GlassOrb(size: 72),
           const SizedBox(height: AppSpacing.lg),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: AppSpacing.lg),
           ConstrainedBox(

@@ -134,6 +134,7 @@ class ResumeSettingsTable extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get templateId => text().withDefault(const Constant('classic'))();
   IntColumn get accentColor => integer().withDefault(const Constant(0xFF0F766E))();
+  TextColumn get fontFamily => text().withDefault(const Constant('inter'))();
   RealColumn get fontSize => real().withDefault(const Constant(10.0))();
   RealColumn get margin => real().withDefault(const Constant(40.0))();
   TextColumn get sectionOrderJson => text().withDefault(const Constant('[]'))();

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/error_logger.dart';
+
 import '../../domain/models/profile_models.dart';
 import '../../domain/repositories/resume_repository.dart';
 
@@ -13,9 +15,12 @@ class ExperienceCubit extends Cubit<List<Experience>> {
   Experience? _removed;
 
   void start() {
-    _sub = _repository.watchExperiences().listen((items) {
-      if (!isClosed) emit(items);
-    });
+    _sub = listenLogged(
+      _repository.watchExperiences(),
+      (items) => emit(items),
+      name: 'ExperienceCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   Future<void> save(Experience item) async {

@@ -2,21 +2,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resume_builder/features/export/domain/models/resume_settings.dart';
 import 'package:resume_builder/features/profile/domain/models/profile_models.dart';
 import 'package:resume_builder/features/templates/domain/template_registry.dart';
+import 'package:resume_builder/features/templates/pdf/pdf_helpers.dart';
 import 'package:resume_builder/features/templates/pdf/pdf_safe.dart';
 import 'package:resume_builder/features/templates/pdf/templates.dart';
 import 'package:resume_builder/seed/sample_resume.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   const style = TemplateStyle(accentColor: 0xFF1D4ED8);
 
   test('unicode text still builds a PDF', () async {
     final data = SampleResume.data.copyWith(
       summary: 'Owned “checkout” — cut load time by 40% • shipped it.',
     );
-    final doc = await ClassicTemplate().build(
-      pdfSafeResume(data),
-      style,
-    );
+    final doc = await ClassicTemplate().build(pdfSafeResume(data), style);
     final bytes = await doc.save();
     expect(bytes, isNotEmpty);
   });
@@ -52,5 +51,21 @@ void main() {
       final bytes = await doc.save().timeout(const Duration(seconds: 6));
       expect(bytes, isNotEmpty, reason: template.id);
     }
+  });
+
+  test('resume looks use bundled Google Fonts', () async {
+    final sans = await PdfLook.fromStyle(style);
+    final serif = await PdfLook.fromStyle(
+      const TemplateStyle(
+        accentColor: 0xFF1D4ED8,
+        fontFamily: 'libreBaskerville',
+      ),
+    );
+    final mono = await PdfLook.fromStyle(
+      const TemplateStyle(accentColor: 0xFF1D4ED8, fontFamily: 'sourceCodePro'),
+    );
+    expect(sans.base.fontName.toLowerCase(), contains('inter'));
+    expect(serif.base.fontName.toLowerCase(), contains('baskerville'));
+    expect(mono.base.fontName.toLowerCase(), contains('sourcecodepro'));
   });
 }

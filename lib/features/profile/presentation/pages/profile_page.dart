@@ -52,61 +52,73 @@ class ProfilePage extends StatelessWidget {
             SnackBar(
               content: Text(message),
               duration: AppDurations.snackBar,
+              persist: false,
             ),
           );
       },
       builder: (context, state) {
-        return AppScreen(
-          title: 'Your details',
-          header: const StepHeader(step: 1),
-          actions: [
-            IconButton(
-              tooltip: 'Fill empty fields from a file',
-              onPressed: state.busy
-                  ? null
-                  : () => context.read<ProfileOverviewCubit>().importResume(),
-              icon: state.busy
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.upload_file_outlined),
-            ),
-            IconButton(
-              tooltip: 'Reorder and hide sections',
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            _goToPrevious(context);
+          },
+          child: AppScreen(
+            title: state.fullName.trim().isEmpty
+                ? 'Resume'
+                : 'Resume ${state.fullName.trim()}',
+            showBanner: true,
+            header: const StepHeader(step: 1),
+            leading: BackButton(onPressed: () => _goToPrevious(context)),
+            actions: [
+              IconButton(
+                tooltip: 'Fill empty fields from a file',
+                onPressed: () =>
+                    context.read<ProfileOverviewCubit>().importResume(),
+                icon: const Icon(Icons.upload_file_outlined),
+              ),
+            ],
+            primaryLabel: 'Next',
+            onPrimary: () => context.go('/jd'),
+            primaryEnabled: true,
+            secondary: TextButton(
               onPressed: () => context.push('/profile/sections'),
-              icon: const Icon(Icons.tune_rounded),
+              child: const Text('Add or remove sections'),
             ),
-          ],
-          primaryLabel: 'Next',
-          onPrimary: state.busy ? null : () => context.go('/jd'),
-          primaryEnabled: !state.busy,
-          body: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenPadding,
-              AppSpacing.sm,
-              AppSpacing.screenPadding,
-              AppSpacing.lg,
+            body: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.screenPadding,
+                AppSpacing.sm,
+                AppSpacing.screenPadding,
+                AppSpacing.lg,
+              ),
+              itemCount: state.sections.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final section = state.sections[index];
+                return SectionCard(
+                  title: SectionKeys.label(section.key),
+                  complete: section.complete,
+                  hidden: section.hidden,
+                  icon: _icons[section.key],
+                  onTap: () {
+                    final route = _routes[section.key];
+                    if (route != null) context.push(route);
+                  },
+                );
+              },
             ),
-            itemCount: state.sections.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final section = state.sections[index];
-              return SectionCard(
-                title: SectionKeys.label(section.key),
-                complete: section.complete,
-                hidden: section.hidden,
-                icon: _icons[section.key],
-                onTap: () {
-                  final route = _routes[section.key];
-                  if (route != null) context.push(route);
-                },
-              );
-            },
           ),
         );
       },
     );
+  }
+
+  void _goToPrevious(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go('/');
   }
 }

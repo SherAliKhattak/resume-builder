@@ -41,19 +41,12 @@ class AppTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: onPressed,
-      child: Text(label),
-    );
+    return TextButton(onPressed: onPressed, child: Text(label));
   }
 }
 
 class BottomActionBar extends StatelessWidget {
-  const BottomActionBar({
-    super.key,
-    required this.child,
-    this.secondary,
-  });
+  const BottomActionBar({super.key, required this.child, this.secondary});
 
   final Widget child;
   final Widget? secondary;
@@ -62,12 +55,12 @@ class BottomActionBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: scheme.surface,
+      color: Colors.transparent,
       child: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(
             top: BorderSide(
-              color: scheme.outlineVariant.withValues(alpha: 0.55),
+              color: scheme.outlineVariant.withValues(alpha: 0.25),
             ),
           ),
         ),

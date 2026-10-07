@@ -9,6 +9,7 @@ class AppSpacing {
   static const xxl = 48.0;
 
   static const tapTarget = 48.0;
+  static const primaryButtonHeight = 46.0;
   static const screenPadding = 20.0;
 }
 

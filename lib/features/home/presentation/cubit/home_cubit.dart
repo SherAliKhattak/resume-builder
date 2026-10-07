@@ -2,17 +2,16 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/app_error.dart';
+import '../../../../core/errors/error_logger.dart';
+
 import '../../../../core/backup/backup_service.dart';
 import '../../../../core/import/resume_import_service.dart';
 import '../../../profile/domain/models/profile_models.dart';
 import '../../../profile/domain/repositories/resume_repository.dart';
 
 class HomeState {
-  const HomeState({
-    this.hasStarted = false,
-    this.busy = false,
-    this.message,
-  });
+  const HomeState({this.hasStarted = false, this.busy = false, this.message});
 
   final bool hasStarted;
   final bool busy;
@@ -35,12 +34,27 @@ class HomeCubit extends Cubit<HomeState> {
   final BackupService _backup;
   final ResumeImportService _import;
   StreamSubscription<PersonalInfo>? _sub;
+  var _importing = false;
 
   void start() {
-    _sub = _repository.watchPersonalInfo().listen((info) {
-      if (isClosed) return;
-      emit(state.copyWith(hasStarted: info.fullName.trim().isNotEmpty));
-    });
+    _sub = listenLogged(
+      _repository.watchPersonalInfo(),
+      (info) =>
+          emit(state.copyWith(hasStarted: info.fullName.trim().isNotEmpty)),
+      name: 'HomeCubit.watch',
+      isClosed: () => isClosed,
+    );
+  }
+
+  Future<void> begin({required String name, required String title}) async {
+    final info = await _repository.watchPersonalInfo().first;
+    final nextName = name.trim().isEmpty ? info.fullName : name.trim();
+    await _repository.savePersonalInfo(
+      info.copyWith(
+        fullName: nextName,
+        title: title.trim().isEmpty ? info.title : title.trim(),
+      ),
+    );
   }
 
   Future<void> exportBackup() async {
@@ -48,28 +62,47 @@ class HomeCubit extends Cubit<HomeState> {
     try {
       await _backup.exportBackup();
       emit(state.copyWith(busy: false, message: 'Backup ready to share.'));
-    } catch (error) {
-      emit(state.copyWith(busy: false, message: 'Could not create a backup.'));
+    } catch (error, stack) {
+      logAppError('HomeCubit.exportBackup', error, stack);
+      emit(
+        state.copyWith(
+          busy: false,
+          message: userFacingMessage(
+            error,
+            fallback: 'Could not create a backup.',
+          ),
+        ),
+      );
     }
   }
 
   Future<void> importResume() async {
-    emit(state.copyWith(busy: true, message: null));
+    if (_importing) return;
+    _importing = true;
     try {
-      final result = await _import.importFromPicker();
-      emit(
-        state.copyWith(
-          busy: false,
-          message: result.cancelled ? null : result.message,
-        ),
+      final picked = await _import.pickResume();
+      if (picked == null) return;
+      if (!isClosed) emit(state.copyWith(message: 'Reading resume…'));
+      final result = await _import.importBytes(
+        bytes: picked.bytes,
+        filename: picked.filename,
       );
-    } catch (error) {
-      emit(
-        state.copyWith(
-          busy: false,
-          message: 'Could not read that file. Try a PDF, Word, or text resume.',
-        ),
-      );
+      if (!isClosed) emit(state.copyWith(message: result.message));
+    } catch (error, stack) {
+      logAppError('HomeCubit.importResume', error, stack);
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            message: userFacingMessage(
+              error,
+              fallback:
+                  'Could not read that file. Try a PDF, Word, or text resume.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _importing = false;
     }
   }
 
@@ -83,8 +116,17 @@ class HomeCubit extends Cubit<HomeState> {
           message: imported ? 'Backup restored.' : null,
         ),
       );
-    } catch (error) {
-      emit(state.copyWith(busy: false, message: 'Could not restore that file.'));
+    } catch (error, stack) {
+      logAppError('HomeCubit.importBackup', error, stack);
+      emit(
+        state.copyWith(
+          busy: false,
+          message: userFacingMessage(
+            error,
+            fallback: 'Could not restore that file.',
+          ),
+        ),
+      );
     }
   }
 

@@ -34,61 +34,66 @@ class AwardsPage extends StatelessWidget {
     );
   }
 
-  Future<void> _open(BuildContext context, AwardsCubit cubit, Award item) async {
-    var title = item.title;
-    var issuer = item.issuer;
-    var date = item.date;
-    var description = item.description;
-    await showFormSheet(
-      context: context,
-      title: item.id == 0 ? 'Add award' : 'Edit award',
-      primaryLabel: 'Done',
-      fields: [
-        AppTextField(
-          label: 'Award',
-          hint: 'Engineering Excellence',
-          initialValue: title,
-          onChanged: (value) => title = value,
+  Future<void> _open(
+    BuildContext context,
+    AwardsCubit cubit,
+    Award item,
+  ) async {
+    final title = TextEditingController(text: item.title);
+    final issuer = TextEditingController(text: item.issuer);
+    final date = TextEditingController(text: item.date);
+    final description = TextEditingController(text: item.description);
+
+    try {
+      await showFormSheet(
+        context: context,
+        title: item.id == 0 ? 'Add award' : 'Edit award',
+        primaryLabel: 'Done',
+        fields: [
+          AppTextField(
+            label: 'Award',
+            hint: 'Engineering Excellence',
+            controller: title,
+          ),
+          AppTextField(
+            label: 'From',
+            hint: 'Northwind Labs',
+            controller: issuer,
+          ),
+          AppTextField(
+            label: 'Date',
+            hint: '2024',
+            controller: date,
+          ),
+          AppTextField(
+            label: 'Notes',
+            hint: 'For shipping the offline mobile suite.',
+            controller: description,
+            maxLines: 3,
+            minLines: 2,
+          ),
+        ],
+        onSave: () => cubit.save(
+          item.copyWith(
+            title: title.text.trim(),
+            issuer: issuer.text.trim(),
+            date: date.text.trim(),
+            description: description.text.trim(),
+          ),
         ),
-        AppTextField(
-          label: 'From',
-          hint: 'Northwind Labs',
-          initialValue: issuer,
-          onChanged: (value) => issuer = value,
-        ),
-        AppTextField(
-          label: 'Date',
-          hint: '2024',
-          initialValue: date,
-          onChanged: (value) => date = value,
-        ),
-        AppTextField(
-          label: 'Notes',
-          hint: 'For shipping the offline mobile suite.',
-          initialValue: description,
-          onChanged: (value) => description = value,
-          maxLines: 3,
-          minLines: 2,
-        ),
-      ],
-      onSave: () => cubit.save(
-        item.copyWith(
-          title: title.trim(),
-          issuer: issuer.trim(),
-          date: date.trim(),
-          description: description.trim(),
-        ),
-      ),
-      onDelete: item.id == 0
-          ? null
-          : () {
-              cubit.remove(item);
-              showUndoBar(
-                context: context,
-                message: 'Removed',
-                onUndo: cubit.undoRemove,
-              );
-            },
-    );
+        onDelete: item.id == 0
+            ? null
+            : () {
+                cubit.remove(item);
+                showUndoBar(
+                  context: context,
+                  message: 'Removed',
+                  onUndo: cubit.undoRemove,
+                );
+              },
+      );
+    } finally {
+      disposeSheetControllers([title, issuer, date, description]);
+    }
   }
 }

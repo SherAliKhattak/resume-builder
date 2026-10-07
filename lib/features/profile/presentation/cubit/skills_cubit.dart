@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/error_logger.dart';
+
 import '../../domain/models/profile_models.dart';
 import '../../domain/repositories/resume_repository.dart';
 
@@ -14,9 +16,12 @@ class SkillsCubit extends Cubit<List<SkillGroup>> {
   SkillGroup? _removedGroup;
 
   void start() {
-    _sub = _repository.watchSkillGroups().listen((items) {
-      if (!isClosed) emit(items);
-    });
+    _sub = listenLogged(
+      _repository.watchSkillGroups(),
+      (items) => emit(items),
+      name: 'SkillsCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   Future<int> ensureGroup() async {
@@ -38,6 +43,17 @@ class SkillsCubit extends Cubit<List<SkillGroup>> {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
     await _repository.addSkill(groupId, trimmed);
+  }
+
+  Future<void> moveSkill(Skill skill, int groupId) async {
+    if (skill.groupId == groupId) return;
+    final target = state.where((group) => group.id == groupId);
+    if (target.isEmpty) return;
+    final alreadyHas = target.first.skills.any(
+      (item) => item.name.toLowerCase() == skill.name.toLowerCase(),
+    );
+    if (alreadyHas) return;
+    await _repository.moveSkill(skill.id, groupId);
   }
 
   Future<void> removeSkill(Skill skill) async {

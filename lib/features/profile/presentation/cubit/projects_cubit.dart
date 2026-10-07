@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/error_logger.dart';
+
 import '../../domain/models/profile_models.dart';
 import '../../domain/repositories/resume_repository.dart';
 
@@ -13,9 +15,12 @@ class ProjectsCubit extends Cubit<List<Project>> {
   Project? _removed;
 
   void start() {
-    _sub = _repository.watchProjects().listen((items) {
-      if (!isClosed) emit(items);
-    });
+    _sub = listenLogged(
+      _repository.watchProjects(),
+      (items) => emit(items),
+      name: 'ProjectsCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   Future<void> save(Project item) async {

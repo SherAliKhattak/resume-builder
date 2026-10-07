@@ -57,4 +57,23 @@ void main() {
     expect(resume.personal.fullName, 'Ada Lovelace');
     expect(resume.projects.single.name, 'Engine');
   });
+
+  test('saves the selected resume font', () async {
+    final current = await repo.getSettings();
+    await repo.saveSettings(current.copyWith(fontFamily: 'libreBaskerville'));
+    final saved = await repo.getSettings();
+    expect(saved.fontFamily, 'libreBaskerville');
+  });
+
+  test('moves a skill into another group', () async {
+    final flutter = await repo.addSkillGroup('Flutter skills');
+    final deploy = await repo.addSkillGroup('Deployment');
+    final skillId = await repo.addSkill(deploy, 'CI/CD');
+    await repo.moveSkill(skillId, flutter);
+    final groups = await repo.watchSkillGroups().first;
+    final flutterGroup = groups.firstWhere((group) => group.id == flutter);
+    final deployGroup = groups.firstWhere((group) => group.id == deploy);
+    expect(flutterGroup.skills.single.name, 'CI/CD');
+    expect(deployGroup.skills, isEmpty);
+  });
 }

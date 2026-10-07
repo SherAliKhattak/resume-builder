@@ -149,6 +149,7 @@ class ResumeRepositoryImpl implements ResumeRepository {
       id: row.id,
       templateId: row.templateId,
       accentColor: row.accentColor,
+      fontFamily: row.fontFamily,
       fontSize: row.fontSize,
       margin: row.margin,
       sectionOrder: order,
@@ -318,6 +319,14 @@ class ResumeRepositoryImpl implements ResumeRepository {
         sortOrder: Value(next),
       ),
     );
+  }
+
+  @override
+  Future<void> moveSkill(int skillId, int groupId) async {
+    final existing = await _profile.getSkills();
+    final inGroup = existing.where((s) => s.groupId == groupId && s.id != skillId);
+    final next = await _nextSortOrder(inGroup.map((e) => e.sortOrder).toList());
+    await _profile.moveSkill(skillId, groupId, next);
   }
 
   @override
@@ -510,6 +519,7 @@ class ResumeRepositoryImpl implements ResumeRepository {
         id: Value(settings.id),
         templateId: Value(settings.templateId),
         accentColor: Value(settings.accentColor),
+        fontFamily: Value(settings.fontFamily),
         fontSize: Value(settings.fontSize),
         margin: Value(settings.margin),
         sectionOrderJson: Value(jsonEncode(settings.sectionOrder)),

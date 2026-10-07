@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_spacing.dart';
 
 class StepHeader extends StatelessWidget {
-  const StepHeader({
-    super.key,
-    required this.step,
-    this.total = 4,
-  });
+  const StepHeader({super.key, required this.step, this.total = 4});
 
   final int step;
   final int total;
@@ -47,8 +43,8 @@ class StepHeader extends StatelessWidget {
               Text(
                 label,
                 style: textTheme.bodySmall?.copyWith(
-                  color: scheme.primary,
-                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -64,8 +60,8 @@ class StepHeader extends StatelessWidget {
                 return LinearProgressIndicator(
                   value: value,
                   minHeight: 5,
-                  backgroundColor: scheme.surfaceContainerHighest,
-                  color: scheme.primary,
+                  backgroundColor: scheme.onSurface.withValues(alpha: 0.08),
+                  color: scheme.onSurface,
                 );
               },
             ),

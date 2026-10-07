@@ -38,41 +38,44 @@ class CustomSectionsPage extends StatelessWidget {
     CustomSectionsCubit cubit,
     CustomSection item,
   ) async {
-    var title = item.title;
-    var body = item.body;
-    await showFormSheet(
-      context: context,
-      title: item.id == 0 ? 'Add section' : 'Edit section',
-      primaryLabel: 'Done',
-      fields: [
-        AppTextField(
-          label: 'Title',
-          hint: 'Volunteer work',
-          initialValue: title,
-          onChanged: (value) => title = value,
+    final title = TextEditingController(text: item.title);
+    final body = TextEditingController(text: item.body);
+
+    try {
+      await showFormSheet(
+        context: context,
+        title: item.id == 0 ? 'Add section' : 'Edit section',
+        primaryLabel: 'Done',
+        fields: [
+          AppTextField(
+            label: 'Title',
+            hint: 'Volunteer work',
+            controller: title,
+          ),
+          AppTextField(
+            label: 'Details',
+            hint: 'What you want on the resume.',
+            controller: body,
+            maxLines: 6,
+            minLines: 4,
+          ),
+        ],
+        onSave: () => cubit.save(
+          item.copyWith(title: title.text.trim(), body: body.text.trim()),
         ),
-        AppTextField(
-          label: 'Details',
-          hint: 'What you want on the resume.',
-          initialValue: body,
-          onChanged: (value) => body = value,
-          maxLines: 6,
-          minLines: 4,
-        ),
-      ],
-      onSave: () => cubit.save(
-        item.copyWith(title: title.trim(), body: body.trim()),
-      ),
-      onDelete: item.id == 0
-          ? null
-          : () {
-              cubit.remove(item);
-              showUndoBar(
-                context: context,
-                message: 'Removed',
-                onUndo: cubit.undoRemove,
-              );
-            },
-    );
+        onDelete: item.id == 0
+            ? null
+            : () {
+                cubit.remove(item);
+                showUndoBar(
+                  context: context,
+                  message: 'Removed',
+                  onUndo: cubit.undoRemove,
+                );
+              },
+      );
+    } finally {
+      disposeSheetControllers([title, body]);
+    }
   }
 }

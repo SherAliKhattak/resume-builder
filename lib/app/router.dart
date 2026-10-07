@@ -41,10 +41,7 @@ GoRouter createRouter({required bool showOnboarding}) {
         path: '/onboarding',
         builder: (context, state) => const OnboardingPage(),
       ),
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const HomePage(),
-      ),
+      GoRoute(path: '/', builder: (context, state) => const HomePage()),
       GoRoute(
         path: '/profile',
         builder: (context, state) => BlocProvider(
@@ -144,10 +141,7 @@ GoRouter createRouter({required bool showOnboarding}) {
           return TemplatePreviewPage(templateId: id);
         },
       ),
-      GoRoute(
-        path: '/export',
-        builder: (context, state) => const ExportPage(),
-      ),
+      GoRoute(path: '/export', builder: (context, state) => const ExportPage()),
     ],
   );
 }

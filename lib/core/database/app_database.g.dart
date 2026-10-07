@@ -4549,6 +4549,18 @@ class $ResumeSettingsTableTable extends ResumeSettingsTable
     requiredDuringInsert: false,
     defaultValue: const Constant(0xFF0F766E),
   );
+  static const VerificationMeta _fontFamilyMeta = const VerificationMeta(
+    'fontFamily',
+  );
+  @override
+  late final GeneratedColumn<String> fontFamily = GeneratedColumn<String>(
+    'font_family',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('inter'),
+  );
   static const VerificationMeta _fontSizeMeta = const VerificationMeta(
     'fontSize',
   );
@@ -4615,6 +4627,7 @@ class $ResumeSettingsTableTable extends ResumeSettingsTable
     id,
     templateId,
     accentColor,
+    fontFamily,
     fontSize,
     margin,
     sectionOrderJson,
@@ -4649,6 +4662,12 @@ class $ResumeSettingsTableTable extends ResumeSettingsTable
           data['accent_color']!,
           _accentColorMeta,
         ),
+      );
+    }
+    if (data.containsKey('font_family')) {
+      context.handle(
+        _fontFamilyMeta,
+        fontFamily.isAcceptableOrUnknown(data['font_family']!, _fontFamilyMeta),
       );
     }
     if (data.containsKey('font_size')) {
@@ -4711,6 +4730,10 @@ class $ResumeSettingsTableTable extends ResumeSettingsTable
         DriftSqlType.int,
         data['${effectivePrefix}accent_color'],
       )!,
+      fontFamily: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}font_family'],
+      )!,
       fontSize: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}font_size'],
@@ -4745,6 +4768,7 @@ class ResumeSettingsRow extends DataClass
   final int id;
   final String templateId;
   final int accentColor;
+  final String fontFamily;
   final double fontSize;
   final double margin;
   final String sectionOrderJson;
@@ -4754,6 +4778,7 @@ class ResumeSettingsRow extends DataClass
     required this.id,
     required this.templateId,
     required this.accentColor,
+    required this.fontFamily,
     required this.fontSize,
     required this.margin,
     required this.sectionOrderJson,
@@ -4766,6 +4791,7 @@ class ResumeSettingsRow extends DataClass
     map['id'] = Variable<int>(id);
     map['template_id'] = Variable<String>(templateId);
     map['accent_color'] = Variable<int>(accentColor);
+    map['font_family'] = Variable<String>(fontFamily);
     map['font_size'] = Variable<double>(fontSize);
     map['margin'] = Variable<double>(margin);
     map['section_order_json'] = Variable<String>(sectionOrderJson);
@@ -4779,6 +4805,7 @@ class ResumeSettingsRow extends DataClass
       id: Value(id),
       templateId: Value(templateId),
       accentColor: Value(accentColor),
+      fontFamily: Value(fontFamily),
       fontSize: Value(fontSize),
       margin: Value(margin),
       sectionOrderJson: Value(sectionOrderJson),
@@ -4796,6 +4823,7 @@ class ResumeSettingsRow extends DataClass
       id: serializer.fromJson<int>(json['id']),
       templateId: serializer.fromJson<String>(json['templateId']),
       accentColor: serializer.fromJson<int>(json['accentColor']),
+      fontFamily: serializer.fromJson<String>(json['fontFamily']),
       fontSize: serializer.fromJson<double>(json['fontSize']),
       margin: serializer.fromJson<double>(json['margin']),
       sectionOrderJson: serializer.fromJson<String>(json['sectionOrderJson']),
@@ -4812,6 +4840,7 @@ class ResumeSettingsRow extends DataClass
       'id': serializer.toJson<int>(id),
       'templateId': serializer.toJson<String>(templateId),
       'accentColor': serializer.toJson<int>(accentColor),
+      'fontFamily': serializer.toJson<String>(fontFamily),
       'fontSize': serializer.toJson<double>(fontSize),
       'margin': serializer.toJson<double>(margin),
       'sectionOrderJson': serializer.toJson<String>(sectionOrderJson),
@@ -4824,6 +4853,7 @@ class ResumeSettingsRow extends DataClass
     int? id,
     String? templateId,
     int? accentColor,
+    String? fontFamily,
     double? fontSize,
     double? margin,
     String? sectionOrderJson,
@@ -4833,6 +4863,7 @@ class ResumeSettingsRow extends DataClass
     id: id ?? this.id,
     templateId: templateId ?? this.templateId,
     accentColor: accentColor ?? this.accentColor,
+    fontFamily: fontFamily ?? this.fontFamily,
     fontSize: fontSize ?? this.fontSize,
     margin: margin ?? this.margin,
     sectionOrderJson: sectionOrderJson ?? this.sectionOrderJson,
@@ -4848,6 +4879,9 @@ class ResumeSettingsRow extends DataClass
       accentColor: data.accentColor.present
           ? data.accentColor.value
           : this.accentColor,
+      fontFamily: data.fontFamily.present
+          ? data.fontFamily.value
+          : this.fontFamily,
       fontSize: data.fontSize.present ? data.fontSize.value : this.fontSize,
       margin: data.margin.present ? data.margin.value : this.margin,
       sectionOrderJson: data.sectionOrderJson.present
@@ -4868,6 +4902,7 @@ class ResumeSettingsRow extends DataClass
           ..write('id: $id, ')
           ..write('templateId: $templateId, ')
           ..write('accentColor: $accentColor, ')
+          ..write('fontFamily: $fontFamily, ')
           ..write('fontSize: $fontSize, ')
           ..write('margin: $margin, ')
           ..write('sectionOrderJson: $sectionOrderJson, ')
@@ -4882,6 +4917,7 @@ class ResumeSettingsRow extends DataClass
     id,
     templateId,
     accentColor,
+    fontFamily,
     fontSize,
     margin,
     sectionOrderJson,
@@ -4895,6 +4931,7 @@ class ResumeSettingsRow extends DataClass
           other.id == this.id &&
           other.templateId == this.templateId &&
           other.accentColor == this.accentColor &&
+          other.fontFamily == this.fontFamily &&
           other.fontSize == this.fontSize &&
           other.margin == this.margin &&
           other.sectionOrderJson == this.sectionOrderJson &&
@@ -4906,6 +4943,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
   final Value<int> id;
   final Value<String> templateId;
   final Value<int> accentColor;
+  final Value<String> fontFamily;
   final Value<double> fontSize;
   final Value<double> margin;
   final Value<String> sectionOrderJson;
@@ -4915,6 +4953,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
     this.id = const Value.absent(),
     this.templateId = const Value.absent(),
     this.accentColor = const Value.absent(),
+    this.fontFamily = const Value.absent(),
     this.fontSize = const Value.absent(),
     this.margin = const Value.absent(),
     this.sectionOrderJson = const Value.absent(),
@@ -4925,6 +4964,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
     this.id = const Value.absent(),
     this.templateId = const Value.absent(),
     this.accentColor = const Value.absent(),
+    this.fontFamily = const Value.absent(),
     this.fontSize = const Value.absent(),
     this.margin = const Value.absent(),
     this.sectionOrderJson = const Value.absent(),
@@ -4935,6 +4975,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
     Expression<int>? id,
     Expression<String>? templateId,
     Expression<int>? accentColor,
+    Expression<String>? fontFamily,
     Expression<double>? fontSize,
     Expression<double>? margin,
     Expression<String>? sectionOrderJson,
@@ -4945,6 +4986,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
       if (id != null) 'id': id,
       if (templateId != null) 'template_id': templateId,
       if (accentColor != null) 'accent_color': accentColor,
+      if (fontFamily != null) 'font_family': fontFamily,
       if (fontSize != null) 'font_size': fontSize,
       if (margin != null) 'margin': margin,
       if (sectionOrderJson != null) 'section_order_json': sectionOrderJson,
@@ -4958,6 +5000,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
     Value<int>? id,
     Value<String>? templateId,
     Value<int>? accentColor,
+    Value<String>? fontFamily,
     Value<double>? fontSize,
     Value<double>? margin,
     Value<String>? sectionOrderJson,
@@ -4968,6 +5011,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
       id: id ?? this.id,
       templateId: templateId ?? this.templateId,
       accentColor: accentColor ?? this.accentColor,
+      fontFamily: fontFamily ?? this.fontFamily,
       fontSize: fontSize ?? this.fontSize,
       margin: margin ?? this.margin,
       sectionOrderJson: sectionOrderJson ?? this.sectionOrderJson,
@@ -4988,6 +5032,9 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
     }
     if (accentColor.present) {
       map['accent_color'] = Variable<int>(accentColor.value);
+    }
+    if (fontFamily.present) {
+      map['font_family'] = Variable<String>(fontFamily.value);
     }
     if (fontSize.present) {
       map['font_size'] = Variable<double>(fontSize.value);
@@ -5015,6 +5062,7 @@ class ResumeSettingsTableCompanion extends UpdateCompanion<ResumeSettingsRow> {
           ..write('id: $id, ')
           ..write('templateId: $templateId, ')
           ..write('accentColor: $accentColor, ')
+          ..write('fontFamily: $fontFamily, ')
           ..write('fontSize: $fontSize, ')
           ..write('margin: $margin, ')
           ..write('sectionOrderJson: $sectionOrderJson, ')
@@ -7795,6 +7843,7 @@ typedef $$ResumeSettingsTableTableCreateCompanionBuilder =
       Value<int> id,
       Value<String> templateId,
       Value<int> accentColor,
+      Value<String> fontFamily,
       Value<double> fontSize,
       Value<double> margin,
       Value<String> sectionOrderJson,
@@ -7806,6 +7855,7 @@ typedef $$ResumeSettingsTableTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> templateId,
       Value<int> accentColor,
+      Value<String> fontFamily,
       Value<double> fontSize,
       Value<double> margin,
       Value<String> sectionOrderJson,
@@ -7834,6 +7884,11 @@ class $$ResumeSettingsTableTableFilterComposer
 
   ColumnFilters<int> get accentColor => $composableBuilder(
     column: $table.accentColor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fontFamily => $composableBuilder(
+    column: $table.fontFamily,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7887,6 +7942,11 @@ class $$ResumeSettingsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get fontFamily => $composableBuilder(
+    column: $table.fontFamily,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get fontSize => $composableBuilder(
     column: $table.fontSize,
     builder: (column) => ColumnOrderings(column),
@@ -7932,6 +7992,11 @@ class $$ResumeSettingsTableTableAnnotationComposer
 
   GeneratedColumn<int> get accentColor => $composableBuilder(
     column: $table.accentColor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fontFamily => $composableBuilder(
+    column: $table.fontFamily,
     builder: (column) => column,
   );
 
@@ -8003,6 +8068,7 @@ class $$ResumeSettingsTableTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> templateId = const Value.absent(),
                 Value<int> accentColor = const Value.absent(),
+                Value<String> fontFamily = const Value.absent(),
                 Value<double> fontSize = const Value.absent(),
                 Value<double> margin = const Value.absent(),
                 Value<String> sectionOrderJson = const Value.absent(),
@@ -8012,6 +8078,7 @@ class $$ResumeSettingsTableTableTableManager
                 id: id,
                 templateId: templateId,
                 accentColor: accentColor,
+                fontFamily: fontFamily,
                 fontSize: fontSize,
                 margin: margin,
                 sectionOrderJson: sectionOrderJson,
@@ -8023,6 +8090,7 @@ class $$ResumeSettingsTableTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> templateId = const Value.absent(),
                 Value<int> accentColor = const Value.absent(),
+                Value<String> fontFamily = const Value.absent(),
                 Value<double> fontSize = const Value.absent(),
                 Value<double> margin = const Value.absent(),
                 Value<String> sectionOrderJson = const Value.absent(),
@@ -8032,6 +8100,7 @@ class $$ResumeSettingsTableTableTableManager
                 id: id,
                 templateId: templateId,
                 accentColor: accentColor,
+                fontFamily: fontFamily,
                 fontSize: fontSize,
                 margin: margin,
                 sectionOrderJson: sectionOrderJson,

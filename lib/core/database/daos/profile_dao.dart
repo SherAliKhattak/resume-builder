@@ -161,6 +161,15 @@ class ProfileDao extends DatabaseAccessor<AppDatabase> with _$ProfileDaoMixin {
     return (delete(skills)..where((t) => t.id.equals(id))).go();
   }
 
+  Future<void> moveSkill(int id, int groupId, int sortOrder) {
+    return (update(skills)..where((t) => t.id.equals(id))).write(
+      SkillsCompanion(
+        groupId: Value(groupId),
+        sortOrder: Value(sortOrder),
+      ),
+    );
+  }
+
   Future<void> reorderSkillGroups(List<int> ids) async {
     await transaction(() async {
       for (var i = 0; i < ids.length; i++) {

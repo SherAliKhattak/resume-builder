@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/error_logger.dart';
+
 import '../../domain/models/profile_models.dart';
 import '../../domain/repositories/resume_repository.dart';
 
@@ -13,9 +15,12 @@ class LanguagesCubit extends Cubit<List<Language>> {
   Language? _removed;
 
   void start() {
-    _sub = _repository.watchLanguages().listen((items) {
-      if (!isClosed) emit(items);
-    });
+    _sub = listenLogged(
+      _repository.watchLanguages(),
+      (items) => emit(items),
+      name: 'LanguagesCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   Future<void> save(Language item) async {

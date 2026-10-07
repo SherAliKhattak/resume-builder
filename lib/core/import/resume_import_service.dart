@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -32,7 +34,7 @@ class ResumeImportService {
 
   final ResumeRepository _repository;
 
-  Future<ResumeImportResult> importFromPicker() async {
+  Future<({Uint8List bytes, String filename})?> pickResume() async {
     final files = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const [
@@ -46,32 +48,38 @@ class ResumeImportService {
         'json',
       ],
     );
-    if (files.isEmpty) return const ResumeImportResult(cancelled: true);
+    if (files.isEmpty) return null;
     final file = files.first;
-    return importBytes(
-      bytes: Uint8List.fromList(await file.readAsBytes()),
-      filename: file.name,
-    );
+    final raw = await file.readAsBytes();
+    if (raw.isEmpty) return null;
+    return (bytes: Uint8List.fromList(raw), filename: file.name);
+  }
+
+  Future<ResumeImportResult> importFromPicker() async {
+    final picked = await pickResume();
+    if (picked == null) return const ResumeImportResult(cancelled: true);
+    return importBytes(bytes: picked.bytes, filename: picked.filename);
   }
 
   Future<ResumeImportResult> importBytes({
     required Uint8List bytes,
     required String filename,
   }) async {
-    final parsed = _parse(bytes, filename);
+    final parsed = await _parseOffMain(bytes, filename);
     return merge(parsed);
   }
 
-  ResumeData _parse(Uint8List bytes, String filename) {
-    if (filename.toLowerCase().endsWith('.json')) {
-      final decoded = jsonDecode(utf8.decode(bytes));
-      if (decoded is Map) {
-        return ResumeData.fromJson(Map<String, dynamic>.from(decoded));
-      }
-      throw const FormatException('That JSON file is not a resume.');
+  Future<ResumeData> _parseOffMain(Uint8List bytes, String filename) async {
+    try {
+      final json = await Isolate.run(
+        () => _parseToJson(bytes, filename),
+      ).timeout(const Duration(seconds: 15));
+      return ResumeData.fromJson(json);
+    } on TimeoutException {
+      throw const FormatException(
+        'That file took too long to read. Try again, or use a PDF, Word, or text resume.',
+      );
     }
-    final text = ResumeFileReader.read(bytes, filename);
-    return ResumeTextParser.parse(text);
   }
 
   Future<ResumeImportResult> merge(ResumeData incoming) async {
@@ -229,4 +237,16 @@ class ResumeImportService {
     return name.isNotEmpty &&
         current.any((item) => item.trim().toLowerCase() == name);
   }
+}
+
+Map<String, dynamic> _parseToJson(Uint8List bytes, String filename) {
+  if (filename.toLowerCase().endsWith('.json')) {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is Map) {
+      return Map<String, dynamic>.from(decoded);
+    }
+    throw const FormatException('That JSON file is not a resume.');
+  }
+  final text = ResumeFileReader.read(bytes, filename);
+  return ResumeTextParser.parse(text).toJson();
 }

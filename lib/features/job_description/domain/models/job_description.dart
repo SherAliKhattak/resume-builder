@@ -1,5 +1,8 @@
 import '../../../../core/utils/json_list.dart';
 
+export 'analyzed_keyword.dart';
+export 'ats_review.dart';
+
 class JobDescription {
   const JobDescription({
     this.id = 0,
@@ -56,34 +59,6 @@ class JobDescription {
       matchScore: json['matchScore'] == null
           ? null
           : readDouble(json, 'matchScore'),
-      matched: stringListFromJson(json['matched']),
-      missing: stringListFromJson(json['missing']),
-    );
-  }
-}
-
-class KeywordAnalysis {
-  const KeywordAnalysis({
-    this.score = 0,
-    this.matched = const [],
-    this.missing = const [],
-  });
-
-  final double score;
-  final List<String> matched;
-  final List<String> missing;
-
-  int get percent => score.round().clamp(0, 100);
-
-  Map<String, dynamic> toJson() => {
-    'score': score,
-    'matched': matched,
-    'missing': missing,
-  };
-
-  factory KeywordAnalysis.fromJson(Map<String, dynamic> json) {
-    return KeywordAnalysis(
-      score: readDouble(json, 'score'),
       matched: stringListFromJson(json['matched']),
       missing: stringListFromJson(json['missing']),
     );

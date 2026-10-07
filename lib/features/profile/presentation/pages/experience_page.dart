@@ -50,85 +50,82 @@ class ExperiencePage extends StatelessWidget {
     ExperienceCubit cubit,
     Experience item,
   ) async {
-    var role = item.role;
-    var company = item.company;
-    var start = item.startDate;
-    var end = item.endDate;
-    var bullets = item.bullets.join('\n');
+    final role = TextEditingController(text: item.role);
+    final company = TextEditingController(text: item.company);
+    final start = TextEditingController(text: item.startDate);
+    final end = TextEditingController(text: item.endDate);
+    final bullets = TextEditingController(text: item.bullets.join('\n'));
     var current = item.isCurrent;
 
-    await showFormSheet(
-      context: context,
-      title: item.id == 0 ? 'Add job' : 'Edit job',
-      primaryLabel: 'Done',
-      fields: [
-        AppTextField(
-          label: 'Role',
-          hint: 'Senior designer',
-          initialValue: role,
-          onChanged: (value) => role = value,
-          textCapitalization: TextCapitalization.sentences,
-        ),
-        AppTextField(
-          label: 'Company',
-          hint: 'Northwind Labs',
-          initialValue: company,
-          onChanged: (value) => company = value,
-          textCapitalization: TextCapitalization.words,
-        ),
-        AppTextField(
-          label: 'Start',
-          hint: 'Jan 2022',
-          initialValue: start,
-          onChanged: (value) => start = value,
-        ),
-        StatefulBuilder(
-          builder: (context, setState) {
-            return Column(
-              children: [
-                if (!current)
-                  AppTextField(
-                    label: 'End',
-                    hint: 'Mar 2024',
-                    initialValue: end,
-                    onChanged: (value) => end = value,
-                  ),
-                AppSwitchField(
-                  label: 'I still work here',
-                  value: current,
-                  onChanged: (value) => setState(() => current = value),
-                ),
-              ],
-            );
-          },
-        ),
-        BulletField(
-          initialValue: bullets,
-          onChanged: (value) => bullets = value,
-        ),
-      ],
-      onSave: () {
-        cubit.save(
-          item.copyWith(
-            role: role.trim(),
-            company: company.trim(),
-            startDate: start.trim(),
-            endDate: current ? '' : end.trim(),
-            isCurrent: current,
-            bullets: bulletsFromText(bullets),
+    try {
+      await showFormSheet(
+        context: context,
+        title: item.id == 0 ? 'Add job' : 'Edit job',
+        primaryLabel: 'Done',
+        fields: [
+          AppTextField(
+            label: 'Role',
+            hint: 'Senior designer',
+            controller: role,
+            textCapitalization: TextCapitalization.sentences,
           ),
-        );
-      },
-      onDelete: item.id == 0
-          ? null
-          : () {
-              cubit.remove(item);
-              showUndoBar(
-                context: context,
-                message: 'Removed',
-                onUndo: cubit.undoRemove,
+          AppTextField(
+            label: 'Company',
+            hint: 'Northwind Labs',
+            controller: company,
+            textCapitalization: TextCapitalization.words,
+          ),
+          AppTextField(
+            label: 'Start',
+            hint: 'Jan 2022',
+            controller: start,
+          ),
+          StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                children: [
+                  if (!current)
+                    AppTextField(
+                      label: 'End',
+                      hint: 'Mar 2024',
+                      controller: end,
+                    ),
+                  AppSwitchField(
+                    label: 'I still work here',
+                    value: current,
+                    onChanged: (value) => setState(() => current = value),
+                  ),
+                ],
               );
             },
-    );
+          ),
+          BulletField(controller: bullets),
+        ],
+        onSave: () {
+          cubit.save(
+            item.copyWith(
+              role: role.text.trim(),
+              company: company.text.trim(),
+              startDate: start.text.trim(),
+              endDate: current ? '' : end.text.trim(),
+              isCurrent: current,
+              bullets: bulletsFromText(bullets.text),
+            ),
+          );
+        },
+        onDelete: item.id == 0
+            ? null
+            : () {
+                cubit.remove(item);
+                showUndoBar(
+                  context: context,
+                  message: 'Removed',
+                  onUndo: cubit.undoRemove,
+                );
+              },
+      );
+    } finally {
+      disposeSheetControllers([role, company, start, end, bullets]);
+    }
   }
 }

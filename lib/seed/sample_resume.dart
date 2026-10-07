@@ -113,7 +113,37 @@ class SampleResume {
   );
 
   static ResumeData forPreview(ResumeData live) {
-    if (live.personal.fullName.trim().isEmpty) return data;
-    return live;
+    final sample = data;
+    return ResumeData(
+      personal: PersonalInfo(
+        fullName: _filled(live.personal.fullName, sample.personal.fullName),
+        title: _filled(live.personal.title, sample.personal.title),
+        email: _filled(live.personal.email, sample.personal.email),
+        phone: _filled(live.personal.phone, sample.personal.phone),
+        location: _filled(live.personal.location, sample.personal.location),
+        linkedin: _filled(live.personal.linkedin, sample.personal.linkedin),
+        github: _filled(live.personal.github, sample.personal.github),
+        portfolio: _filled(live.personal.portfolio, sample.personal.portfolio),
+      ),
+      summary: _filled(live.summary, sample.summary),
+      experiences: live.experiences.isEmpty
+          ? sample.experiences
+          : live.experiences,
+      educations: live.educations.isEmpty ? sample.educations : live.educations,
+      skillGroups: live.skillGroups.isEmpty
+          ? sample.skillGroups
+          : live.skillGroups,
+      courses: live.courses.isEmpty ? sample.courses : live.courses,
+      projects: live.projects.isEmpty ? sample.projects : live.projects,
+      languages: live.languages.isEmpty ? sample.languages : live.languages,
+      awards: live.awards.isEmpty ? sample.awards : live.awards,
+      customSections: live.customSections,
+      jobDescription: live.jobDescription,
+      settings: live.settings,
+    );
+  }
+
+  static String _filled(String live, String fallback) {
+    return live.trim().isEmpty ? fallback : live;
   }
 }

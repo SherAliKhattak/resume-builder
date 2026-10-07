@@ -21,18 +21,6 @@ void main() {
     await db.close();
   });
 
-  test('validates name and email inline', () async {
-    cubit.onChanged(cubit.state.info.copyWith(fullName: '', email: 'nope'));
-    expect(cubit.state.nameError, isNotNull);
-    expect(cubit.state.emailError, isNotNull);
-
-    cubit.onChanged(
-      cubit.state.info.copyWith(fullName: 'Ada', email: 'ada@email.com'),
-    );
-    expect(cubit.state.nameError, isNull);
-    expect(cubit.state.emailError, isNull);
-  });
-
   test('autosaves after debounce', () async {
     cubit.onChanged(
       cubit.state.info.copyWith(fullName: 'Ada', email: 'ada@email.com'),

@@ -1,3 +1,25 @@
+enum SkillsPlacement { beforeExperience, afterExperience }
+
+List<String> applySkillsPlacement(
+  List<String> order,
+  SkillsPlacement placement,
+) {
+  if (!order.contains(SectionKeys.skills) ||
+      !order.contains(SectionKeys.experience)) {
+    return List<String>.from(order);
+  }
+  final next = [
+    for (final key in order)
+      if (key != SectionKeys.skills) key,
+  ];
+  final experienceAt = next.indexOf(SectionKeys.experience);
+  final insertAt = placement == SkillsPlacement.beforeExperience
+      ? experienceAt
+      : experienceAt + 1;
+  next.insert(insertAt, SectionKeys.skills);
+  return next;
+}
+
 class SectionKeys {
   static const personal = 'personal';
   static const summary = 'summary';

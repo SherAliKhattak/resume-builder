@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/di.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/widgets/app_button.dart';
+import '../../../../app/widgets/app_canvas.dart';
 import '../../../../app/widgets/app_screen.dart';
 import '../../../profile/domain/repositories/resume_repository.dart';
 
@@ -20,17 +21,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   static const _pages = [
     (
-      Icons.edit_note_rounded,
       'Your details, once',
       'Add your work, school, and skills in short, focused steps. We save as you type.',
     ),
     (
-      Icons.manage_search_rounded,
       'Paste a job post',
       'We read it on this device and show what you already cover — and what you might add.',
     ),
     (
-      Icons.picture_as_pdf_rounded,
       'Pick a look and share',
       'Choose a template, preview the PDF, then download or share it.',
     ),
@@ -55,10 +53,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final last = _index == _pages.length - 1;
     final scheme = Theme.of(context).colorScheme;
     return AppScreen(
-      title: 'Welcome',
-      actions: [
-        AppTextButton(label: 'Skip', onPressed: _finish),
-      ],
+      title: '',
+      implyLeading: false,
+      actions: [AppTextButton(label: 'Skip', onPressed: _finish)],
       primaryLabel: last ? 'Get started' : 'Next',
       onPrimary: () {
         if (last) {
@@ -87,29 +84,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     AppSpacing.md,
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: scheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(AppRadii.lg),
-                        ),
-                        child: Icon(
-                          page.$1,
-                          size: 36,
-                          color: scheme.onPrimaryContainer,
-                        ),
-                      ),
+                      const Spacer(),
+                      const GlassOrb(size: 108),
                       const Spacer(),
                       Text(
-                        page.$2,
+                        page.$1,
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
-                        page.$3,
+                        page.$2,
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -131,11 +118,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     duration: AppDurations.fast,
                     curve: AppCurves.standard,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 8,
-                    width: i == _index ? 22 : 8,
+                    height: 6,
+                    width: i == _index ? 18 : 6,
                     decoration: BoxDecoration(
                       color: i == _index
-                          ? scheme.primary
+                          ? scheme.onSurface
                           : scheme.outlineVariant,
                       borderRadius: BorderRadius.circular(AppRadii.full),
                     ),

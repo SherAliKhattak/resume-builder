@@ -52,15 +52,30 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     _portfolio.text = info.portfolio;
   }
 
+  PersonalInfo _fromControllers() {
+    return PersonalInfo(
+      fullName: _name.text,
+      title: _title.text,
+      email: _email.text,
+      phone: _phone.text,
+      location: _location.text,
+      linkedin: _linkedin.text,
+      github: _github.text,
+      portfolio: _portfolio.text,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PersonalInfoCubit, PersonalInfoState>(
+      listenWhen: (prev, next) => next.ready && !prev.ready,
       listener: (context, state) => _seed(state.info),
       builder: (context, state) {
-        _seed(state.info);
+        if (state.ready) _seed(state.info);
         final cubit = context.read<PersonalInfoCubit>();
-        void update(PersonalInfo Function(PersonalInfo) change) {
-          cubit.onChanged(change(state.info));
+        void persist() {
+          if (!state.ready) return;
+          cubit.onChanged(_fromControllers());
         }
 
         return AppScreen(
@@ -68,6 +83,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           showSaved: state.saved,
           primaryLabel: 'Done',
           onPrimary: () async {
+            persist();
             await cubit.flushPending();
             if (context.mounted) context.pop();
           },
@@ -78,32 +94,29 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 label: 'Name',
                 hint: 'Jane Doe',
                 controller: _name,
-                errorText: state.nameError,
                 keyboardType: TextInputType.name,
                 textCapitalization: TextCapitalization.words,
                 autofillHints: const [AutofillHints.name],
-                onChanged: (value) =>
-                    update((info) => info.copyWith(fullName: value)),
+                prefixIcon: Icons.person_outline_rounded,
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Title',
                 hint: 'Product designer',
                 controller: _title,
-                onChanged: (value) =>
-                    update((info) => info.copyWith(title: value)),
+                prefixIcon: Icons.badge_outlined,
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Email',
                 hint: 'you@email.com',
                 controller: _email,
-                errorText: state.emailError,
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.email],
                 textCapitalization: TextCapitalization.none,
-                onChanged: (value) =>
-                    update((info) => info.copyWith(email: value)),
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -113,8 +126,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 keyboardType: TextInputType.phone,
                 autofillHints: const [AutofillHints.telephoneNumber],
                 textCapitalization: TextCapitalization.none,
-                onChanged: (value) =>
-                    update((info) => info.copyWith(phone: value)),
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -123,8 +135,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 controller: _location,
                 keyboardType: TextInputType.streetAddress,
                 autofillHints: const [AutofillHints.addressCity],
-                onChanged: (value) =>
-                    update((info) => info.copyWith(location: value)),
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -133,8 +144,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 controller: _linkedin,
                 keyboardType: TextInputType.url,
                 textCapitalization: TextCapitalization.none,
-                onChanged: (value) =>
-                    update((info) => info.copyWith(linkedin: value)),
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -143,8 +153,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 controller: _github,
                 keyboardType: TextInputType.url,
                 textCapitalization: TextCapitalization.none,
-                onChanged: (value) =>
-                    update((info) => info.copyWith(github: value)),
+                onChanged: (_) => persist(),
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -154,8 +163,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 keyboardType: TextInputType.url,
                 textInputAction: TextInputAction.done,
                 textCapitalization: TextCapitalization.none,
-                onChanged: (value) =>
-                    update((info) => info.copyWith(portfolio: value)),
+                onChanged: (_) => persist(),
               ),
             ],
           ),

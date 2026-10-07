@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/section_keys.dart';
+import '../../../../core/errors/app_error.dart';
+import '../../../../core/errors/error_logger.dart';
 import '../../../../core/import/resume_import_service.dart';
 import '../../domain/models/resume_data.dart';
 import '../../domain/repositories/resume_repository.dart';
@@ -22,23 +24,23 @@ class SectionStatus {
 class ProfileOverviewState {
   const ProfileOverviewState({
     this.sections = const [],
-    this.busy = false,
+    this.fullName = '',
     this.message,
   });
 
   final List<SectionStatus> sections;
-  final bool busy;
+  final String fullName;
   final String? message;
 
   ProfileOverviewState copyWith({
     List<SectionStatus>? sections,
-    bool? busy,
+    String? fullName,
     String? message,
     bool clearMessage = false,
   }) {
     return ProfileOverviewState(
       sections: sections ?? this.sections,
-      busy: busy ?? this.busy,
+      fullName: fullName ?? this.fullName,
       message: clearMessage ? null : (message ?? this.message),
     );
   }
@@ -51,35 +53,50 @@ class ProfileOverviewCubit extends Cubit<ProfileOverviewState> {
   final ResumeRepository _repository;
   final ResumeImportService _import;
   StreamSubscription<ResumeData>? _sub;
+  var _importing = false;
 
   void start() {
-    _sub = _repository.watchResume().listen((data) {
-      if (!isClosed) {
-        emit(state.copyWith(sections: _statusFor(data), clearMessage: false));
-      }
-    });
+    _sub = listenLogged(
+      _repository.watchResume(),
+      (data) => emit(
+        state.copyWith(
+          sections: _statusFor(data),
+          fullName: data.personal.fullName,
+          clearMessage: false,
+        ),
+      ),
+      name: 'ProfileOverviewCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   Future<void> importResume() async {
-    emit(state.copyWith(busy: true, clearMessage: true));
+    if (_importing) return;
+    _importing = true;
     try {
-      final result = await _import.importFromPicker();
-      if (isClosed) return;
-      emit(
-        state.copyWith(
-          busy: false,
-          message: result.cancelled ? null : result.message,
-          clearMessage: result.cancelled,
-        ),
+      final picked = await _import.pickResume();
+      if (picked == null) return;
+      if (!isClosed) emit(state.copyWith(message: 'Reading resume…'));
+      final result = await _import.importBytes(
+        bytes: picked.bytes,
+        filename: picked.filename,
       );
-    } catch (error) {
-      if (isClosed) return;
-      emit(
-        state.copyWith(
-          busy: false,
-          message: 'Could not read that file. Try a PDF, Word, or text resume.',
-        ),
-      );
+      if (!isClosed) emit(state.copyWith(message: result.message));
+    } catch (error, stack) {
+      logAppError('ProfileOverviewCubit.import', error, stack);
+      if (!isClosed) {
+        emit(
+          state.copyWith(
+            message: userFacingMessage(
+              error,
+              fallback:
+                  'Could not read that file. Try a PDF, Word, or text resume.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      _importing = false;
     }
   }
 

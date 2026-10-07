@@ -37,7 +37,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.connect(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -46,12 +46,15 @@ class AppDatabase extends _$AppDatabase {
       await _seedSingletons();
     },
     onUpgrade: (m, from, to) async {
-      // schemaVersion 1 — no upgrades yet.
+      if (from < 2) {
+        await m.addColumn(resumeSettingsTable, resumeSettingsTable.fontFamily);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement('PRAGMA journal_mode = WAL');
-      await customStatement('PRAGMA synchronous = NORMAL');
+      await customStatement('PRAGMA busy_timeout = 5000');
+      await customStatement('PRAGMA journal_mode = DELETE');
+      await customStatement('PRAGMA synchronous = FULL');
       final personal = await (select(personalInfoTable)
             ..where((t) => t.id.equals(1)))
           .getSingleOrNull();
@@ -73,6 +76,7 @@ class AppDatabase extends _$AppDatabase {
         id: const Value(1),
         templateId: const Value('classic'),
         accentColor: const Value(0xFF1D4ED8),
+        fontFamily: const Value('inter'),
         fontSize: const Value(10.0),
         margin: const Value(40.0),
         sectionOrderJson: Value(jsonEncode(SectionKeys.defaultOrder)),

@@ -9,6 +9,7 @@ import '../../../profile/domain/repositories/resume_repository.dart';
 import '../../../../seed/sample_resume.dart';
 import '../../domain/resume_template.dart';
 import '../../domain/template_registry.dart';
+import '../../pdf/pdf_helpers.dart';
 import '../../pdf/pdf_safe.dart';
 import '../widgets/pdf_raster_view.dart';
 import '../widgets/resume_paper_view.dart';
@@ -78,12 +79,14 @@ class _TemplatePreviewBodyState extends State<_TemplatePreviewBody> {
             final data =
                 preview ??
                 pdfSafeResume(
-                  SampleResume.forPreview(await getIt<ResumeRepository>().getResume()),
+                  SampleResume.forPreview(
+                    await getIt<ResumeRepository>().getResume(),
+                  ),
                 );
             final settings = data.settings;
-            final doc = await widget.template.build(
-              data,
-              TemplateStyle.fromSettings(settings),
+            final doc = await fitToOnePage(
+              style: TemplateStyle.fromSettings(settings),
+              build: (style) => widget.template.build(data, style),
             );
             return doc.save();
           },

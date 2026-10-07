@@ -46,6 +46,9 @@ dependencies:
   share_plus: ^13.3.0
   archive: ^4.0.9
   syncfusion_flutter_pdf: ^24.1.41
+  sqlite3: ^3.5.2
+  http: ^1.5.0
+  google_mobile_ads: ^9.1.0
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +79,43 @@ flutter:
 
   assets:
     - assets/dictionaries/skills.json
+    - google_fonts/
+
+  fonts:
+    - family: Plus Jakarta Sans
+      fonts:
+        - asset: google_fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: google_fonts/PlusJakartaSans-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: google_fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: google_fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: google_fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: google_fonts/Inter-Regular.ttf
+        - asset: google_fonts/Inter-Italic.ttf
+          style: italic
+        - asset: google_fonts/Inter-Bold.ttf
+          weight: 700
+    - family: Libre Baskerville
+      fonts:
+        - asset: google_fonts/LibreBaskerville-Regular.ttf
+        - asset: google_fonts/LibreBaskerville-Italic.ttf
+          style: italic
+        - asset: google_fonts/LibreBaskerville-Bold.ttf
+          weight: 700
+    - family: Source Code Pro
+      fonts:
+        - asset: google_fonts/SourceCodePro-Regular.ttf
+        - asset: google_fonts/SourceCodePro-Italic.ttf
+          style: italic
+        - asset: google_fonts/SourceCodePro-Bold.ttf
+          weight: 700
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

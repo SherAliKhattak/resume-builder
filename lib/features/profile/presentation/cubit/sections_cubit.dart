@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/section_keys.dart';
+import '../../../../core/errors/error_logger.dart';
 import '../../../export/domain/models/resume_settings.dart';
 import '../../domain/repositories/resume_repository.dart';
 
@@ -13,9 +14,12 @@ class SectionsCubit extends Cubit<ResumeSettings> {
   StreamSubscription<ResumeSettings>? _sub;
 
   void start() {
-    _sub = _repository.watchSettings().listen((settings) {
-      if (!isClosed) emit(settings);
-    });
+    _sub = listenLogged(
+      _repository.watchSettings(),
+      (settings) => emit(settings),
+      name: 'SectionsCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   Future<void> reorder(int oldIndex, int newIndex) async {

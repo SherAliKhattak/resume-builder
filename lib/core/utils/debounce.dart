@@ -6,8 +6,9 @@ class Debouncer {
   final Duration delay;
   Timer? _timer;
   Future<void> Function()? _pending;
+  Future<void>? _inFlight;
 
-  bool get hasPending => _pending != null;
+  bool get hasPending => _pending != null || _inFlight != null;
 
   void call(FutureOr<void> Function() action) {
     _timer?.cancel();
@@ -16,7 +17,14 @@ class Debouncer {
       final run = _pending;
       _pending = null;
       _timer = null;
-      run?.call();
+      if (run == null) return;
+      final write = run();
+      _inFlight = write;
+      write.whenComplete(() {
+        if (identical(_inFlight, write)) {
+          _inFlight = null;
+        }
+      });
     });
   }
 
@@ -27,6 +35,10 @@ class Debouncer {
     _pending = null;
     if (run != null) {
       await run();
+    }
+    final inFlight = _inFlight;
+    if (inFlight != null) {
+      await inFlight;
     }
   }
 

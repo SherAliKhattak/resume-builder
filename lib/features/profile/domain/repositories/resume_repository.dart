@@ -30,6 +30,7 @@ abstract class ResumeRepository {
   Future<void> renameSkillGroup(int id, String name);
   Future<void> deleteSkillGroup(int id);
   Future<int> addSkill(int groupId, String name);
+  Future<void> moveSkill(int skillId, int groupId);
   Future<void> deleteSkill(int id);
   Future<void> reorderSkillGroups(List<int> ids);
   Future<void> reorderSkills(List<int> ids);

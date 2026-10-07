@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resume_builder/app/app.dart';
 import 'package:resume_builder/app/di.dart';
 import 'package:resume_builder/app/router.dart';
+import 'package:resume_builder/app/widgets/app_text_field.dart';
 import 'package:resume_builder/core/database/app_database.dart';
 import 'package:resume_builder/features/profile/domain/repositories/resume_repository.dart';
 
@@ -30,7 +31,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'School'),
+      find.descendant(
+        of: find.widgetWithText(AppTextField, 'School'),
+        matching: find.byType(TextFormField),
+      ),
       'University of Texas',
     );
     await tester.tap(find.text('Done'));

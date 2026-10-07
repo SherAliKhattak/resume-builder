@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../core/errors/app_error.dart';
+import '../../core/errors/error_logger.dart';
 import '../theme/app_spacing.dart';
 import 'app_button.dart';
 import 'app_text_field.dart';
@@ -9,27 +13,57 @@ Future<void> showFormSheet({
   required String title,
   required List<Widget> fields,
   required String primaryLabel,
-  required VoidCallback onSave,
-  VoidCallback? onDelete,
-}) async {
-  final confirmed = await showModalBottomSheet<String>(
+  required FutureOr<void> Function() onSave,
+  FutureOr<void> Function()? onDelete,
+}) {
+  return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     builder: (sheetContext) {
+      Future<void> run(FutureOr<void> Function() action, String name) async {
+        try {
+          await action();
+          if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+        } catch (error, stack) {
+          logAppError(name, error, stack);
+          if (!sheetContext.mounted) return;
+          ScaffoldMessenger.of(sheetContext)
+            ..clearSnackBars()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(
+                  userFacingMessage(
+                    error,
+                    fallback: 'Could not save that. Try again.',
+                  ),
+                ),
+                duration: AppDurations.snackBar,
+                persist: false,
+              ),
+            );
+        }
+      }
+
       return _FormSheetBody(
         title: title,
         fields: fields,
         primaryLabel: primaryLabel,
-        showDelete: onDelete != null,
+        onSave: () => unawaited(run(onSave, 'FormSheet.save')),
+        onDelete: onDelete == null
+            ? null
+            : () => unawaited(run(onDelete, 'FormSheet.delete')),
       );
     },
   );
-  if (confirmed == 'save') {
-    onSave();
-  } else if (confirmed == 'delete') {
-    onDelete?.call();
-  }
+}
+
+void disposeSheetControllers(Iterable<TextEditingController> controllers) {
+  Future<void>.delayed(const Duration(milliseconds: 400), () {
+    for (final controller in controllers) {
+      controller.dispose();
+    }
+  });
 }
 
 class _FormSheetBody extends StatelessWidget {
@@ -37,13 +71,15 @@ class _FormSheetBody extends StatelessWidget {
     required this.title,
     required this.fields,
     required this.primaryLabel,
-    required this.showDelete,
+    required this.onSave,
+    this.onDelete,
   });
 
   final String title;
   final List<Widget> fields;
   final String primaryLabel;
-  final bool showDelete;
+  final VoidCallback onSave;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -66,28 +102,29 @@ class _FormSheetBody extends StatelessWidget {
               Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: AppSpacing.md),
               Flexible(
-                child: ListView.separated(
+                child: ListView(
                   shrinkWrap: true,
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  itemCount: fields.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (context, index) => fields[index],
+                  children: [
+                    for (var index = 0; index < fields.length; index++) ...[
+                      if (index > 0) const SizedBox(height: AppSpacing.md),
+                      fields[index],
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              AppButton(
-                label: primaryLabel,
-                onPressed: () => Navigator.of(context).pop('save'),
-              ),
-              if (showDelete) ...[
+              AppButton(label: primaryLabel, onPressed: onSave),
+              if (onDelete != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 TextButton(
-                  onPressed: () => Navigator.of(context).pop('delete'),
+                  onPressed: onDelete,
                   child: Text(
                     'Delete',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ),
               ],
@@ -144,19 +181,22 @@ class AppSwitchField extends StatelessWidget {
 class BulletField extends StatelessWidget {
   const BulletField({
     super.key,
-    required this.initialValue,
-    required this.onChanged,
+    this.controller,
+    this.initialValue = '',
+    this.onChanged,
   });
 
+  final TextEditingController? controller;
   final String initialValue;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return AppTextField(
       label: 'Highlights',
       hint: 'One point per line, like:\nCut load time by 40%',
-      initialValue: initialValue,
+      controller: controller,
+      initialValue: controller == null ? initialValue : null,
       onChanged: onChanged,
       maxLines: 5,
       minLines: 3,

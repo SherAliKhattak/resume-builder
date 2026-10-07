@@ -27,13 +27,14 @@ class _SummaryPageState extends State<SummaryPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<SummaryCubit, SummaryState>(
+      listenWhen: (prev, next) => next.ready && !prev.ready,
       listener: (context, state) {
         if (_seeded) return;
         _seeded = true;
         _body.text = state.body;
       },
       builder: (context, state) {
-        if (!_seeded && state.body.isNotEmpty) {
+        if (state.ready && !_seeded) {
           _seeded = true;
           _body.text = state.body;
         }
@@ -42,7 +43,9 @@ class _SummaryPageState extends State<SummaryPage> {
           showSaved: state.saved,
           primaryLabel: 'Done',
           onPrimary: () async {
-            await context.read<SummaryCubit>().flushPending();
+            final cubit = context.read<SummaryCubit>();
+            cubit.onChanged(_body.text);
+            await cubit.flushPending();
             if (context.mounted) context.pop();
           },
           body: Padding(
@@ -51,6 +54,7 @@ class _SummaryPageState extends State<SummaryPage> {
               label: 'A short introduction',
               hint:
                   'Product-minded engineer who ships simple, reliable apps.',
+              helperText: 'Two or three sentences is usually enough.',
               controller: _body,
               maxLines: 8,
               minLines: 6,

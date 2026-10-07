@@ -41,79 +41,77 @@ class EducationPage extends StatelessWidget {
     EducationCubit cubit,
     Education item,
   ) async {
-    var school = item.school;
-    var degree = item.degree;
-    var field = item.field;
-    var start = item.startDate;
-    var end = item.endDate;
-    var details = item.details;
+    final school = TextEditingController(text: item.school);
+    final degree = TextEditingController(text: item.degree);
+    final field = TextEditingController(text: item.field);
+    final start = TextEditingController(text: item.startDate);
+    final end = TextEditingController(text: item.endDate);
+    final details = TextEditingController(text: item.details);
 
-    await showFormSheet(
-      context: context,
-      title: item.id == 0 ? 'Add school' : 'Edit school',
-      primaryLabel: 'Done',
-      fields: [
-        AppTextField(
-          label: 'School',
-          hint: 'University of Texas',
-          initialValue: school,
-          onChanged: (value) => school = value,
-        ),
-        AppTextField(
-          label: 'Degree',
-          hint: 'B.S.',
-          initialValue: degree,
-          onChanged: (value) => degree = value,
-        ),
-        AppTextField(
-          label: 'Field',
-          hint: 'Computer Science',
-          initialValue: field,
-          onChanged: (value) => field = value,
-        ),
-        AppTextField(
-          label: 'Start',
-          hint: '2015',
-          initialValue: start,
-          onChanged: (value) => start = value,
-        ),
-        AppTextField(
-          label: 'End',
-          hint: '2019',
-          initialValue: end,
-          onChanged: (value) => end = value,
-        ),
-        AppTextField(
-          label: 'Notes',
-          hint: 'Thesis, honors, or coursework',
-          initialValue: details,
-          onChanged: (value) => details = value,
-          maxLines: 3,
-          minLines: 2,
-        ),
-      ],
-      onSave: () {
-        cubit.save(
-          item.copyWith(
-            school: school.trim(),
-            degree: degree.trim(),
-            field: field.trim(),
-            startDate: start.trim(),
-            endDate: end.trim(),
-            details: details.trim(),
+    try {
+      await showFormSheet(
+        context: context,
+        title: item.id == 0 ? 'Add school' : 'Edit school',
+        primaryLabel: 'Done',
+        fields: [
+          AppTextField(
+            label: 'School',
+            hint: 'University of Texas',
+            controller: school,
           ),
-        );
-      },
-      onDelete: item.id == 0
-          ? null
-          : () {
-              cubit.remove(item);
-              showUndoBar(
-                context: context,
-                message: 'Removed',
-                onUndo: cubit.undoRemove,
-              );
-            },
-    );
+          AppTextField(
+            label: 'Degree',
+            hint: 'B.S.',
+            controller: degree,
+          ),
+          AppTextField(
+            label: 'Field',
+            hint: 'Computer Science',
+            controller: field,
+          ),
+          AppTextField(
+            label: 'Start',
+            hint: '2015',
+            controller: start,
+          ),
+          AppTextField(
+            label: 'End',
+            hint: '2019',
+            controller: end,
+          ),
+          AppTextField(
+            label: 'Notes',
+            hint: 'Thesis, honors, or coursework',
+            controller: details,
+            maxLines: 3,
+            minLines: 2,
+          ),
+        ],
+        onSave: () {
+          cubit.save(
+            item.copyWith(
+              school: school.text.trim(),
+              degree: degree.text.trim(),
+              field: field.text.trim(),
+              startDate: start.text.trim(),
+              endDate: end.text.trim(),
+              details: details.text.trim(),
+            ),
+          );
+        },
+        onDelete: item.id == 0
+            ? null
+            : () {
+                cubit.remove(item);
+                showUndoBar(
+                  context: context,
+                  message: 'Removed',
+                  onUndo: cubit.undoRemove,
+                );
+              },
+      );
+    } finally {
+      disposeSheetControllers([school, degree, field, start, end, details]);
+    }
   }
 }

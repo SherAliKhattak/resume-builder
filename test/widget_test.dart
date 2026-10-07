@@ -9,7 +9,7 @@ import 'package:resume_builder/features/profile/domain/repositories/resume_repos
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('Home shows Create Resume', (tester) async {
+  testWidgets('Home shows Build Resume', (tester) async {
     await setupDependencies(database: AppDatabase.forTesting());
     final repo = getIt<ResumeRepository>();
     final settings = await repo.getSettings();
@@ -19,8 +19,8 @@ void main() {
       ResumeApp(router: createRouter(showOnboarding: false)),
     );
     await tester.pump();
-    expect(find.text('Create Resume'), findsOneWidget);
-    expect(find.text('A calm way to write a resume.'), findsOneWidget);
+    expect(find.text('Build Resume'), findsOneWidget);
+    expect(find.text('Create resume'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));

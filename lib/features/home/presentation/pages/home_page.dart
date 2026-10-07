@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/di.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/widgets/app_canvas.dart';
 import '../../../../app/widgets/app_screen.dart';
+import '../../../../app/widgets/app_text_field.dart';
 import '../../../../core/backup/backup_service.dart';
 import '../../../../core/import/resume_import_service.dart';
 import '../../../profile/domain/repositories/resume_repository.dart';
@@ -26,8 +28,30 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class _HomeView extends StatelessWidget {
+class _HomeView extends StatefulWidget {
   const _HomeView();
+
+  @override
+  State<_HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<_HomeView> {
+  final _name = TextEditingController();
+  final _title = TextEditingController();
+  var _seeded = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _title.dispose();
+    super.dispose();
+  }
+
+  Future<void> _buildResume() async {
+    await context.read<HomeCubit>().begin(name: _name.text, title: _title.text);
+    if (!mounted) return;
+    context.go('/profile');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,18 +67,29 @@ class _HomeView extends StatelessWidget {
             SnackBar(
               content: Text(message),
               duration: AppDurations.snackBar,
+              persist: false,
             ),
           );
       },
       builder: (context, state) {
-        final scheme = Theme.of(context).colorScheme;
+        if (state.hasStarted && !_seeded) {
+          _seeded = true;
+          getIt<ResumeRepository>().watchPersonalInfo().first.then((info) {
+            if (!mounted) return;
+            if (_name.text.isEmpty) _name.text = info.fullName;
+            if (_title.text.isEmpty) _title.text = info.title;
+          });
+        }
         final textTheme = Theme.of(context).textTheme;
+        final scheme = Theme.of(context).colorScheme;
         return AppScreen(
-          title: 'Resume Builder',
+          title: '',
+          implyLeading: false,
+          showBanner: true,
           actions: [
             PopupMenuButton<String>(
               tooltip: 'More',
-              icon: const Icon(Icons.more_vert_rounded),
+              icon: const Icon(Icons.more_horiz_rounded),
               onSelected: (value) {
                 final cubit = context.read<HomeCubit>();
                 if (value == 'upload') cubit.importResume();
@@ -68,13 +103,11 @@ class _HomeView extends StatelessWidget {
               ],
             ),
           ],
-          primaryLabel: state.hasStarted ? 'Continue' : 'Create Resume',
-          onPrimary: state.busy ? null : () => context.go('/profile'),
+          primaryLabel: 'Build Resume',
+          onPrimary: state.busy ? null : _buildResume,
           primaryEnabled: !state.busy,
           secondary: TextButton(
-            onPressed: state.busy
-                ? null
-                : () => context.read<HomeCubit>().importResume(),
+            onPressed: () => context.read<HomeCubit>().importResume(),
             child: const Text('Upload a resume'),
           ),
           body: ListView(
@@ -85,105 +118,48 @@ class _HomeView extends StatelessWidget {
               AppSpacing.lg,
             ),
             children: [
-              const SizedBox(height: AppSpacing.md),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(AppRadii.lg),
-                  ),
-                  child: Icon(
-                    Icons.description_outlined,
-                    size: 32,
-                    color: scheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: 28),
+              const Center(child: GlassOrb(size: 108)),
+              const SizedBox(height: 36),
               Text(
-                'A calm way to write a resume.',
+                'Create resume',
+                textAlign: TextAlign.center,
                 style: textTheme.headlineMedium,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: 8),
               Text(
-                'Upload a current resume if you have one. We fill empty fields on this device, and you add anything that is still missing.',
-                style: textTheme.bodyLarge?.copyWith(
+                'Enter your name and target role, then fill in the rest on this device.',
+                textAlign: TextAlign.center,
+                style: textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              const _HomePoint(
-                icon: Icons.upload_file_outlined,
-                title: 'Start from a file',
-                body: 'Import a PDF or Word resume and fill empty fields.',
+              const SizedBox(height: 28),
+              AppTextField(
+                label: 'Full Name',
+                hint: 'Jane Doe',
+                controller: _name,
+                keyboardType: TextInputType.name,
+                textCapitalization: TextCapitalization.words,
+                autofillHints: const [AutofillHints.name],
+                prefixIcon: Icons.person_outline_rounded,
               ),
-              const SizedBox(height: AppSpacing.md),
-              const _HomePoint(
-                icon: Icons.manage_search_outlined,
-                title: 'Match a job post',
-                body: 'See what you already cover, then add what is missing.',
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const _HomePoint(
-                icon: Icons.picture_as_pdf_outlined,
-                title: 'Export a clean PDF',
-                body: 'Pick a template and share an ATS-friendly resume.',
+              const SizedBox(height: 14),
+              AppTextField(
+                label: 'Job Role',
+                hint: 'Product designer',
+                controller: _title,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.done,
+                prefixIcon: Icons.work_outline_rounded,
+                onSubmitted: (_) {
+                  if (!state.busy) _buildResume();
+                },
               ),
             ],
           ),
         );
       },
-    );
-  }
-}
-
-class _HomePoint extends StatelessWidget {
-  const _HomePoint({
-    required this.icon,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(AppRadii.sm),
-          ),
-          child: Icon(icon, size: 20, color: scheme.primary),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: textTheme.titleMedium),
-              const SizedBox(height: 2),
-              Text(
-                body,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

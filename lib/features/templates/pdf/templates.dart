@@ -1,7 +1,9 @@
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import '../../../core/constants/section_keys.dart';
 import '../../export/domain/models/resume_settings.dart';
+import '../../profile/domain/models/profile_models.dart';
 import '../../profile/domain/models/resume_data.dart';
 import '../domain/resume_template.dart';
 import 'pdf_helpers.dart';
@@ -14,16 +16,12 @@ class ClassicTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(style);
+    final look = await PdfLook.fromStyle(style);
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
-        pw.Text(data.personal.fullName, style: look.name),
-        if (data.personal.title.isNotEmpty)
-          pw.Text(data.personal.title, style: look.small),
-        pw.SizedBox(height: 4),
-        pw.Text(contactLine(data.personal), style: look.small),
+        identityHeader(data, look),
+        pw.SizedBox(height: 6),
         ...standardSections(data, look),
       ],
     );
@@ -38,21 +36,27 @@ class AtsPlainTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(
+    final look = await PdfLook.fromStyle(
       TemplateStyle(
-        accentColor: 0xFF111111,
+        accentColor: 0xFF1A1A1A,
+        fontFamily: style.fontFamily,
         fontSize: style.fontSize,
         margin: style.margin,
       ),
     );
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
         pw.Text(data.personal.fullName, style: look.name),
-        pw.Text(data.personal.title, style: look.body),
-        pw.Text(contactLine(data.personal), style: look.body),
-        ...standardSections(data, look),
+        if (data.personal.title.isNotEmpty) ...[
+          pw.SizedBox(height: 3),
+          pw.Text(data.personal.title, style: look.bodyBold),
+        ],
+        pw.SizedBox(height: 5),
+        contactLineWidget(data.personal, look),
+        pw.SizedBox(height: 8),
+        pw.Container(height: 0.6, color: look.ink),
+        ...standardSections(data, look, rule: SectionRule.line),
       ],
     );
   }
@@ -66,38 +70,23 @@ class ModernTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(style);
-    final doc = pw.Document();
-    doc.addPage(
-      pw.MultiPage(
-        maxPages: 16,
-        pageTheme: pw.PageTheme(
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.fromLTRB(28, look.margin, look.margin, look.margin),
-          theme: pw.ThemeData.withFont(
-            base: look.base,
-            bold: look.bold,
-            italic: look.italic,
-          ),
-          buildBackground: (_) => pw.FullPage(
-            ignoreMargins: true,
-            child: pw.Align(
-              alignment: pw.Alignment.centerLeft,
-              child: pw.Container(width: 14, color: look.accent),
-            ),
-          ),
+    final look = await PdfLook.fromStyle(style);
+    return multiPageDocument(
+      look: look,
+      margin: pw.EdgeInsets.fromLTRB(32, look.margin, look.margin, look.margin),
+      background: (_) => pw.FullPage(
+        ignoreMargins: true,
+        child: pw.Align(
+          alignment: pw.Alignment.centerLeft,
+          child: pw.Container(width: 10, color: look.accent),
         ),
-        build: (_) => [
-          pw.Text(data.personal.fullName, style: look.name),
-          if (data.personal.title.isNotEmpty)
-            pw.Text(data.personal.title, style: look.small),
-          pw.SizedBox(height: 6),
-          pw.Text(contactLine(data.personal), style: look.small),
-          ...standardSections(data, look),
-        ],
       ),
+      build: (_) => [
+        identityHeader(data, look, showRule: false),
+        pw.SizedBox(height: 4),
+        ...standardSections(data, look, rule: SectionRule.bar),
+      ],
     );
-    return doc;
   }
 }
 
@@ -109,17 +98,22 @@ class MinimalTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(style);
+    final look = await PdfLook.fromStyle(
+      TemplateStyle(
+        accentColor: 0xFF1A1A1A,
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        margin: style.margin + 6,
+      ),
+    );
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
-        pw.SizedBox(height: 18),
-        pw.Text(data.personal.fullName, style: look.name),
-        pw.SizedBox(height: 8),
-        pw.Text(contactLine(data.personal), style: look.small),
-        pw.SizedBox(height: 18),
-        ...standardSections(data, look),
+        pw.SizedBox(height: 10),
+        identityHeader(data, look, showRule: false),
+        pw.SizedBox(height: 14),
+        pw.Container(height: 0.5, color: look.hairline),
+        ...standardSections(data, look, rule: SectionRule.none),
       ],
     );
   }
@@ -133,46 +127,41 @@ class ExecutiveTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(style);
-    final doc = pw.Document();
-    doc.addPage(
-      pw.MultiPage(
-        maxPages: 16,
-        pageTheme: pw.PageTheme(
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.fromLTRB(look.margin, 0, look.margin, look.margin),
-          theme: pw.ThemeData.withFont(
-            base: look.base,
-            bold: look.bold,
-            italic: look.italic,
-          ),
-        ),
-        header: (_) => pw.Container(
-          color: look.accent,
-          width: double.infinity,
-          padding: pw.EdgeInsets.fromLTRB(0, 22, 0, 18),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                data.personal.fullName.toUpperCase(),
-                style: look.name.copyWith(color: PdfColors.white),
+    final look = await PdfLook.fromStyle(style);
+    return multiPageDocument(
+      look: look,
+      margin: pw.EdgeInsets.fromLTRB(look.margin, 0, look.margin, look.margin),
+      header: (_) => pw.Container(
+        width: double.infinity,
+        color: look.accent,
+        padding: const pw.EdgeInsets.fromLTRB(0, 26, 0, 20),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              data.personal.fullName.toUpperCase(),
+              style: look.name.copyWith(
+                color: PdfColors.white,
+                fontSize: look.size + 10,
+                letterSpacing: 1.6,
               ),
+            ),
+            if (data.personal.title.isNotEmpty) ...[
+              pw.SizedBox(height: 4),
               pw.Text(
                 data.personal.title,
                 style: look.body.copyWith(color: PdfColors.white),
               ),
             ],
-          ),
+            if (contactLine(data.personal).isNotEmpty) ...[
+              pw.SizedBox(height: 8),
+              contactLineWidget(data.personal, look, color: PdfColors.white),
+            ],
+          ],
         ),
-        build: (_) => [
-          pw.SizedBox(height: 16),
-          pw.Text(contactLine(data.personal), style: look.small),
-          ...standardSections(data, look),
-        ],
       ),
+      build: (_) => [pw.SizedBox(height: 16), ...standardSections(data, look)],
     );
-    return doc;
   }
 }
 
@@ -184,37 +173,37 @@ class CreativeTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(style);
+    final look = await PdfLook.fromStyle(style);
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
         pw.Container(
+          width: double.infinity,
           color: look.accent,
-          padding: const pw.EdgeInsets.all(16),
-          child: pw.Row(
+          padding: const pw.EdgeInsets.fromLTRB(18, 18, 18, 16),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      data.personal.fullName,
-                      style: look.name.copyWith(color: PdfColors.white),
-                    ),
-                    pw.Text(
-                      data.personal.title,
-                      style: look.body.copyWith(color: PdfColors.white),
-                    ),
-                  ],
-                ),
+              pw.Text(
+                data.personal.fullName,
+                style: look.name.copyWith(color: PdfColors.white),
               ),
+              if (data.personal.title.isNotEmpty) ...[
+                pw.SizedBox(height: 3),
+                pw.Text(
+                  data.personal.title,
+                  style: look.body.copyWith(color: PdfColors.white),
+                ),
+              ],
+              if (contactLine(data.personal).isNotEmpty) ...[
+                pw.SizedBox(height: 8),
+                contactLineWidget(data.personal, look, color: PdfColors.white),
+              ],
             ],
           ),
         ),
-        pw.SizedBox(height: 10),
-        pw.Text(contactLine(data.personal), style: look.small),
-        ...standardSections(data, look),
+        pw.SizedBox(height: 8),
+        ...standardSections(data, look, rule: SectionRule.bar),
       ],
     );
   }
@@ -228,19 +217,19 @@ class CompactTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(
+    final look = await PdfLook.fromStyle(
       TemplateStyle(
         accentColor: style.accentColor,
-        fontSize: (style.fontSize - 1).clamp(8, 12),
-        margin: (style.margin - 8).clamp(20, 40),
+        fontFamily: style.fontFamily,
+        fontSize: (style.fontSize - 0.6).clamp(8, 12),
+        margin: (style.margin - 6).clamp(22, 40),
       ),
     );
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
-        pw.Text(data.personal.fullName, style: look.name.copyWith(fontSize: look.size + 6)),
-        pw.Text(contactLine(data.personal), style: look.small),
+        identityHeader(data, look),
+        pw.SizedBox(height: 4),
         ...standardSections(data, look, compact: true),
       ],
     );
@@ -255,7 +244,18 @@ class TechTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.mono(style);
+    final look = await PdfLook.fromStyle(style);
+    const techOrder = [
+      SectionKeys.summary,
+      SectionKeys.skills,
+      SectionKeys.projects,
+      SectionKeys.experience,
+      SectionKeys.education,
+      SectionKeys.courses,
+      SectionKeys.languages,
+      SectionKeys.awards,
+      SectionKeys.custom,
+    ];
     final skillsFirst = ResumeData(
       personal: data.personal,
       summary: data.summary,
@@ -268,27 +268,37 @@ class TechTemplate implements ResumeTemplate {
       awards: data.awards,
       customSections: data.customSections,
       settings: data.settings.copyWith(
-        sectionOrder: [
-          'skills',
-          'projects',
-          'experience',
-          'education',
-          'summary',
-          'courses',
-          'languages',
-          'awards',
-          'custom',
-        ],
+        sectionOrder: applySkillsPlacement(
+          techOrder,
+          data.settings.skillsPlacement,
+        ),
       ),
     );
     return multiPageDocument(
-      data: skillsFirst,
       look: look,
       build: (_) => [
-        pw.Text('> ${data.personal.fullName}', style: look.name),
-        pw.Text(data.personal.title, style: look.small),
-        pw.Text(contactLine(data.personal), style: look.small),
-        ...standardSections(skillsFirst, look),
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.only(bottom: 10),
+          decoration: pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: look.accent, width: 1.4),
+            ),
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(data.personal.fullName, style: look.name),
+              if (data.personal.title.isNotEmpty) ...[
+                pw.SizedBox(height: 3),
+                pw.Text(data.personal.title, style: look.title),
+              ],
+              pw.SizedBox(height: 6),
+              contactLineWidget(data.personal, look),
+            ],
+          ),
+        ),
+        ...standardSections(skillsFirst, look, rule: SectionRule.bar),
       ],
     );
   }
@@ -302,30 +312,26 @@ class TimelineTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.sans(style);
+    final look = await PdfLook.fromStyle(style);
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
-        pw.Text(data.personal.fullName, style: look.name),
-        pw.Text(contactLine(data.personal), style: look.small),
+        identityHeader(data, look),
+        pw.SizedBox(height: 6),
         for (final key in orderedKeys(data))
-          if (key == 'experience')
-            ...[
-              sectionTitle('Experience', look),
-              for (final item in data.experiences) ...[
-                jobHeader(item, look),
-                ...[
-                  for (final bullet in bullets(item.bullets, look))
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.only(left: 2),
-                      child: bullet,
-                    ),
-                ],
-                pw.SizedBox(height: 6),
-              ],
-            ]
-          else
+          if (key == SectionKeys.experience) ...[
+            pw.NewPage(freeSpace: sectionLeadRoom(look)),
+            if (data.experiences.isEmpty)
+              sectionTitle('Experience', look)
+            else ...[
+              keepTogether([
+                sectionTitle('Experience', look),
+                _timelineJob(data.experiences.first, look),
+              ]),
+              for (final item in data.experiences.skip(1))
+                _timelineJob(item, look),
+            ],
+          ] else
             ...sectionWidgets(data, look, key),
       ],
     );
@@ -340,26 +346,99 @@ class ElegantTemplate implements ResumeTemplate {
 
   @override
   Future<pw.Document> build(ResumeData data, TemplateStyle style) async {
-    final look = PdfLook.serif(style);
+    final look = await PdfLook.fromStyle(style);
     return multiPageDocument(
-      data: data,
       look: look,
       build: (_) => [
         pw.Center(
           child: pw.Column(
             children: [
-              pw.Text(data.personal.fullName, style: look.name),
-              pw.SizedBox(height: 4),
-              pw.Text(data.personal.title, style: look.small),
-              pw.SizedBox(height: 6),
-              pw.Container(height: 0.6, width: 120, color: look.accent),
-              pw.SizedBox(height: 6),
-              pw.Text(contactLine(data.personal), style: look.small, textAlign: pw.TextAlign.center),
+              pw.Text(
+                data.personal.fullName,
+                style: look.name.copyWith(letterSpacing: 1.1),
+              ),
+              if (data.personal.title.isNotEmpty) ...[
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  data.personal.title,
+                  style: look.bodyItalic.copyWith(color: look.accent),
+                ),
+              ],
+              pw.SizedBox(height: 8),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.center,
+                children: [
+                  pw.Container(width: 36, height: 0.6, color: look.accent),
+                  pw.SizedBox(width: 8),
+                  pw.Container(
+                    width: 5,
+                    height: 5,
+                    decoration: pw.BoxDecoration(
+                      color: look.accent,
+                      shape: pw.BoxShape.circle,
+                    ),
+                  ),
+                  pw.SizedBox(width: 8),
+                  pw.Container(width: 36, height: 0.6, color: look.accent),
+                ],
+              ),
+              pw.SizedBox(height: 8),
+              contactLineWidget(data.personal, look, centered: true),
             ],
           ),
         ),
+        pw.SizedBox(height: 8),
         ...standardSections(data, look),
       ],
     );
   }
+}
+
+pw.Widget _timelineJob(Experience item, PdfLook look) {
+  return pw.Padding(
+    padding: const pw.EdgeInsets.only(bottom: 8),
+    child: pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.SizedBox(
+          width: 78,
+          child: pw.Text(
+            dateRange(item.startDate, item.endDate, current: item.isCurrent),
+            style: look.small,
+          ),
+        ),
+        pw.Container(
+          width: 8,
+          margin: const pw.EdgeInsets.only(right: 10, top: 3),
+          child: pw.Column(
+            children: [
+              pw.Container(
+                width: 7,
+                height: 7,
+                decoration: pw.BoxDecoration(
+                  color: look.accent,
+                  shape: pw.BoxShape.circle,
+                ),
+              ),
+              pw.Container(width: 1.1, height: 28, color: look.accent),
+            ],
+          ),
+        ),
+        pw.Expanded(
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                item.role.trim().isNotEmpty ? item.role : item.company,
+                style: look.bodyBold,
+              ),
+              if (item.role.trim().isNotEmpty && item.company.trim().isNotEmpty)
+                pw.Text(item.company, style: look.bodyItalic),
+              ...bullets(item.bullets, look),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

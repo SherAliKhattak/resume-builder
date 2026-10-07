@@ -2,144 +2,257 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/analysis/keyword_analyzer.dart';
+import '../../../../core/errors/app_error.dart';
+import '../../../../core/errors/error_logger.dart';
 import '../../../../core/utils/lifecycle_flush.dart';
-import '../../domain/models/job_description.dart';
 import '../../../profile/domain/models/resume_data.dart';
 import '../../../profile/domain/repositories/resume_repository.dart';
+import '../../domain/ats_reviewer.dart';
+import '../../domain/models/job_description.dart';
 
 class JobDescriptionState {
   const JobDescriptionState({
     this.rawText = '',
-    this.analysis,
     this.busy = false,
-    this.suggestion,
+    this.ready = false,
+    this.aiReview,
+    this.aiError,
+    this.message,
   });
 
   final String rawText;
-  final KeywordAnalysis? analysis;
   final bool busy;
-  final String? suggestion;
+  final bool ready;
+  final AtsReview? aiReview;
+  final String? aiError;
+  final String? message;
 
   JobDescriptionState copyWith({
     String? rawText,
-    KeywordAnalysis? analysis,
     bool? busy,
-    String? suggestion,
-    bool clearAnalysis = false,
+    bool? ready,
+    AtsReview? aiReview,
+    String? aiError,
+    String? message,
+    bool clearAiReview = false,
+    bool clearAiError = false,
+    bool clearMessage = false,
   }) {
     return JobDescriptionState(
       rawText: rawText ?? this.rawText,
-      analysis: clearAnalysis ? null : (analysis ?? this.analysis),
       busy: busy ?? this.busy,
-      suggestion: suggestion ?? this.suggestion,
+      ready: ready ?? this.ready,
+      aiReview: clearAiReview ? null : (aiReview ?? this.aiReview),
+      aiError: clearAiError ? null : (aiError ?? this.aiError),
+      message: clearMessage ? null : (message ?? this.message),
     );
   }
 }
 
 class JobDescriptionCubit extends Cubit<JobDescriptionState>
     with LifecycleFlush {
-  JobDescriptionCubit(this._repository, this._analyzer)
-    : super(const JobDescriptionState());
+  JobDescriptionCubit(this._repository, {AtsReviewer? reviewer})
+    : _reviewer = reviewer ?? const NoOpAtsReviewer(),
+      super(const JobDescriptionState());
 
   final ResumeRepository _repository;
-  final KeywordAnalyzer _analyzer;
+  final AtsReviewer _reviewer;
   StreamSubscription<JobDescription>? _sub;
-  Timer? _debounce;
+  StreamSubscription<ResumeData>? _resumeSub;
+  Future<void> _writes = Future.value();
   bool _applyingRemote = false;
-
-  var _dirty = false;
+  bool _analyzing = false;
+  String? _profileFingerprint;
+  Timer? _refreshDebounce;
 
   void start() {
     attachLifecycleFlush();
-    _sub = _repository.watchJobDescription().listen((job) {
+    unawaited(_start());
+  }
+
+  Future<void> _start() async {
+    try {
+      _profileFingerprint = (await _repository.getResume()).allText;
       if (isClosed) return;
-      _applyingRemote = true;
-      emit(
-        state.copyWith(
-          rawText: job.rawText,
-          analysis: job.hasAnalysis
-              ? KeywordAnalysis(
-                  score: job.matchScore ?? 0,
-                  matched: job.matched,
-                  missing: job.missing,
-                )
-              : null,
-          clearAnalysis: !job.hasAnalysis,
-        ),
+      _sub = listenLogged(
+        _repository.watchJobDescription(),
+        (job) {
+          _applyingRemote = true;
+          emit(state.copyWith(rawText: job.rawText, ready: true));
+          _applyingRemote = false;
+        },
+        name: 'JobDescriptionCubit.watchJob',
+        isClosed: () => isClosed,
       );
-      _applyingRemote = false;
+      _resumeSub = listenLogged(
+        _repository.watchResume(),
+        _onResumeChanged,
+        name: 'JobDescriptionCubit.watchResume',
+        isClosed: () => isClosed,
+      );
+    } catch (error, stack) {
+      logAppError('JobDescriptionCubit.start', error, stack);
+      if (!isClosed) {
+        final friendly = userFacingMessage(
+          error,
+          fallback: 'Could not load this job post.',
+        );
+        emit(
+          state.copyWith(
+            ready: true,
+            aiError: friendly,
+            message: friendly,
+          ),
+        );
+      }
+    }
+  }
+
+  void _onResumeChanged(ResumeData resume) {
+    final fingerprint = resume.allText;
+    if (fingerprint == _profileFingerprint) return;
+    _profileFingerprint = fingerprint;
+    _queueAnalysisRefresh();
+  }
+
+  void _queueAnalysisRefresh() {
+    if (state.rawText.trim().isEmpty) return;
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 250), () {
+      if (!isClosed) unawaited(analyze(reorder: false));
     });
   }
 
   void onChanged(String text) {
-    emit(state.copyWith(rawText: text, suggestion: null, clearAnalysis: true));
+    emit(
+      state.copyWith(
+        rawText: text,
+        clearAiReview: true,
+        clearAiError: true,
+        clearMessage: true,
+      ),
+    );
     if (_applyingRemote) return;
-    _dirty = true;
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _debounce = null;
-      _dirty = false;
-      _repository.saveJobDescription(JobDescription(rawText: text));
+    _writes = _writes.then((_) async {
+      try {
+        if (isClosed) return;
+        await _repository.saveJobDescription(JobDescription(rawText: text));
+      } catch (error, stack) {
+        logAppError('JobDescriptionCubit.save', error, stack);
+      }
     });
   }
 
   @override
-  Future<void> flushPending() async {
-    final shouldSave = _dirty || _debounce != null;
-    _debounce?.cancel();
-    _debounce = null;
-    if (!shouldSave) return;
-    _dirty = false;
-    await _repository.saveJobDescription(
-      JobDescription(
-        rawText: state.rawText,
-        analyzedAt: state.analysis == null ? null : DateTime.now(),
-        matchScore: state.analysis?.score,
-        matched: state.analysis?.matched ?? const [],
-        missing: state.analysis?.missing ?? const [],
-      ),
-    );
-  }
+  Future<void> flushPending() => _writes;
 
-  Future<void> analyze() async {
-    _debounce?.cancel();
-    _debounce = null;
-    _dirty = false;
+  Future<void> analyze({bool reorder = true}) async {
+    if (_analyzing) return;
+    await flushPending();
     final text = state.rawText.trim();
     if (text.isEmpty) return;
-    emit(state.copyWith(busy: true));
-    final resume = await _repository.getResume();
-    final analysis = _analyzer.analyze(
-      jobDescription: text,
-      resume: resume,
-    );
-    await _repository.saveJobDescription(
-      JobDescription(
-        rawText: text,
-        analyzedAt: DateTime.now(),
-        matchScore: analysis.score,
-        matched: analysis.matched,
-        missing: analysis.missing,
-      ),
-    );
-    await _reorderByRelevance(resume, analysis);
-    emit(
-      state.copyWith(
-        busy: false,
-        analysis: analysis,
-        suggestion: analysis.missing.isEmpty
-            ? 'Nice — your details already cover this job post.'
-            : 'Skills and projects were reordered by relevance.',
-      ),
-    );
+    _analyzing = true;
+    emit(state.copyWith(busy: true, clearAiError: true, clearMessage: true));
+    try {
+      final resume = await _repository.getResume();
+      _profileFingerprint = resume.allText;
+      final review = await _reviewer.review(
+        jobDescription: text,
+        resumeText: resume.allText,
+      );
+      if (review == null) {
+        throw Exception('Received an empty review.');
+      }
+      await _repository.saveJobDescription(
+        JobDescription(
+          rawText: text,
+          analyzedAt: DateTime.now(),
+          matchScore: review.score.toDouble(),
+          matched: review.matchedKeywords,
+          missing: review.missingKeywords,
+        ),
+      );
+      if (reorder) {
+        await _reorderByRelevance(resume, [
+          ...review.matchedKeywords,
+          ...review.missingKeywords,
+        ]);
+      }
+      if (isClosed) return;
+      emit(state.copyWith(busy: false, aiReview: review));
+    } catch (error, stack) {
+      logAppError('JobDescriptionCubit.analyze', error, stack);
+      if (!isClosed) {
+        final friendly = userFacingMessage(
+          error,
+          fallback: 'Please wait a moment and try again.',
+        );
+        emit(
+          state.copyWith(
+            busy: false,
+            aiError: friendly,
+            message: friendly,
+          ),
+        );
+      }
+    } finally {
+      _analyzing = false;
+    }
+  }
+
+  Future<void> requestAiReview() => analyze(reorder: false);
+
+  Future<void> addSuggestedSkill(String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    try {
+      final resume = await _repository.getResume();
+      final alreadyHas = resume.skillGroups.any(
+        (group) => group.skills.any(
+          (skill) => skill.name.toLowerCase() == trimmed.toLowerCase(),
+        ),
+      );
+      if (alreadyHas) {
+        if (!isClosed) {
+          emit(state.copyWith(message: '$trimmed is already a skill.'));
+        }
+        return;
+      }
+      final groupId = resume.skillGroups.isEmpty
+          ? await _repository.addSkillGroup('Skills')
+          : resume.skillGroups.first.id;
+      await _repository.addSkill(groupId, trimmed);
+      if (!isClosed) emit(state.copyWith(message: 'Added $trimmed to Skills.'));
+    } catch (error, stack) {
+      logAppError('JobDescriptionCubit.addSkill', error, stack);
+      if (!isClosed) {
+        emit(state.copyWith(message: 'Could not add $trimmed. Try again.'));
+      }
+    }
+  }
+
+  Future<void> applySuggestedSummary() async {
+    final summary = state.aiReview?.profileSummary?.trim();
+    if (summary == null || summary.isEmpty) return;
+    try {
+      await _repository.saveSummary(summary);
+      if (!isClosed) emit(state.copyWith(message: 'Summary updated.'));
+    } catch (error, stack) {
+      logAppError('JobDescriptionCubit.summary', error, stack);
+      if (!isClosed) {
+        emit(state.copyWith(message: 'Could not update the summary. Try again.'));
+      }
+    }
+  }
+
+  void clearMessage() {
+    if (state.message != null) emit(state.copyWith(clearMessage: true));
   }
 
   Future<void> _reorderByRelevance(
     ResumeData resume,
-    KeywordAnalysis analysis,
+    List<String> keywords,
   ) async {
-    final keywords = [...analysis.matched, ...analysis.missing];
     if (keywords.isEmpty) return;
 
     int score(String text) {
@@ -173,8 +286,10 @@ class JobDescriptionCubit extends Cubit<JobDescriptionState>
   @override
   Future<void> close() async {
     detachLifecycleFlush();
+    _refreshDebounce?.cancel();
     await flushPending();
     await _sub?.cancel();
+    await _resumeSub?.cancel();
     return super.close();
   }
 }

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/theme/app_spacing.dart';
-import '../../../../core/utils/debounce.dart';
+import '../../../../core/errors/error_logger.dart';
 import '../../../../core/utils/lifecycle_flush.dart';
 import '../../domain/models/profile_models.dart';
 import '../../domain/repositories/resume_repository.dart';
@@ -12,28 +12,22 @@ class PersonalInfoState {
   const PersonalInfoState({
     this.info = const PersonalInfo(),
     this.saved = false,
-    this.nameError,
-    this.emailError,
+    this.ready = false,
   });
 
   final PersonalInfo info;
   final bool saved;
-  final String? nameError;
-  final String? emailError;
+  final bool ready;
 
   PersonalInfoState copyWith({
     PersonalInfo? info,
     bool? saved,
-    String? nameError,
-    String? emailError,
-    bool clearNameError = false,
-    bool clearEmailError = false,
+    bool? ready,
   }) {
     return PersonalInfoState(
       info: info ?? this.info,
       saved: saved ?? this.saved,
-      nameError: clearNameError ? null : (nameError ?? this.nameError),
-      emailError: clearEmailError ? null : (emailError ?? this.emailError),
+      ready: ready ?? this.ready,
     );
   }
 }
@@ -42,50 +36,41 @@ class PersonalInfoCubit extends Cubit<PersonalInfoState> with LifecycleFlush {
   PersonalInfoCubit(this._repository) : super(const PersonalInfoState());
 
   final ResumeRepository _repository;
-  final _debounce = Debouncer();
+  Future<void> _writes = Future.value();
   StreamSubscription<PersonalInfo>? _sub;
   Timer? _savedTimer;
   bool _applyingRemote = false;
 
   void start() {
     attachLifecycleFlush();
-    _sub = _repository.watchPersonalInfo().listen((info) {
-      if (isClosed) return;
-      _applyingRemote = true;
-      emit(state.copyWith(info: info));
-      _applyingRemote = false;
-    });
+    _sub = listenLogged(
+      _repository.watchPersonalInfo(),
+      (info) {
+        _applyingRemote = true;
+        emit(state.copyWith(info: info, ready: true));
+        _applyingRemote = false;
+      },
+      name: 'PersonalInfoCubit.watch',
+      isClosed: () => isClosed,
+    );
   }
 
   void onChanged(PersonalInfo info) {
-    final nameError = info.fullName.trim().isEmpty
-        ? 'Please add your name.'
-        : null;
-    final emailError = _emailError(info.email);
-    emit(
-      state.copyWith(
-        info: info,
-        nameError: nameError,
-        emailError: emailError,
-        clearNameError: nameError == null,
-        clearEmailError: emailError == null,
-      ),
-    );
+    emit(state.copyWith(info: info));
     if (_applyingRemote) return;
-    _debounce(() => _save(info));
-  }
-
-  String? _emailError(String email) {
-    final trimmed = email.trim();
-    if (trimmed.isEmpty) return 'Please add your email.';
-    if (!trimmed.contains('@') || !trimmed.contains('.')) {
-      return 'That email does not look right.';
-    }
-    return null;
+    _writes = _writes.then((_) async {
+      try {
+        if (isClosed) return;
+        await _save(info);
+      } catch (error, stack) {
+        logAppError('PersonalInfoCubit.save', error, stack);
+      }
+    });
   }
 
   Future<void> _save(PersonalInfo info) async {
     await _repository.savePersonalInfo(info);
+    if (isClosed) return;
     emit(state.copyWith(saved: true));
     _savedTimer?.cancel();
     _savedTimer = Timer(AppDurations.saved, () {
@@ -94,7 +79,7 @@ class PersonalInfoCubit extends Cubit<PersonalInfoState> with LifecycleFlush {
   }
 
   @override
-  Future<void> flushPending() => _debounce.flush();
+  Future<void> flushPending() => _writes;
 
   @override
   Future<void> close() async {

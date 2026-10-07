@@ -41,21 +41,21 @@ class TemplateThumbnail extends StatelessWidget {
                   duration: AppDurations.medium,
                   curve: AppCurves.standard,
                   decoration: BoxDecoration(
-                    color: scheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(AppRadii.md),
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.lg),
                     border: Border.all(
                       color: selected
-                          ? scheme.primary
-                          : scheme.outlineVariant.withValues(alpha: 0.7),
-                      width: selected ? 2 : 1,
+                          ? scheme.onSurface.withValues(alpha: 0.7)
+                          : scheme.outlineVariant.withValues(alpha: 0.35),
+                      width: selected ? 1.4 : 1,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: selected
-                            ? scheme.primary.withValues(alpha: 0.22)
-                            : scheme.shadow.withValues(alpha: 0.06),
-                        blurRadius: selected ? 16 : 8,
-                        offset: Offset(0, selected ? 6 : 2),
+                        color: Colors.black.withValues(
+                          alpha: selected ? 0.08 : 0.04,
+                        ),
+                        blurRadius: selected ? 18 : 10,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -67,7 +67,9 @@ class TemplateThumbnail extends StatelessWidget {
                           child: png == null
                               ? Center(
                                   child: Padding(
-                                    padding: const EdgeInsets.all(AppSpacing.sm),
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.sm,
+                                    ),
                                     child: Text(
                                       name,
                                       textAlign: TextAlign.center,
@@ -91,7 +93,7 @@ class TemplateThumbnail extends StatelessWidget {
                             curve: AppCurves.standard,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: scheme.primary,
+                                color: scheme.onSurface,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
@@ -100,14 +102,14 @@ class TemplateThumbnail extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.check_rounded,
-                                size: 16,
-                                color: scheme.onPrimary,
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.check_rounded,
+                                  size: 16,
+                                  color: scheme.onPrimary,
+                                ),
                               ),
-                            ),
                             ),
                           ),
                         ),
@@ -122,9 +124,9 @@ class TemplateThumbnail extends StatelessWidget {
           AnimatedDefaultTextStyle(
             duration: AppDurations.fast,
             style: (textTheme.titleMedium ?? const TextStyle()).copyWith(
-              fontSize: 14,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: selected ? scheme.primary : scheme.onSurface,
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+              color: scheme.onSurface,
             ),
             child: Text(
               name,

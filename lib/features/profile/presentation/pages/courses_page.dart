@@ -34,61 +34,66 @@ class CoursesPage extends StatelessWidget {
     );
   }
 
-  Future<void> _open(BuildContext context, CoursesCubit cubit, Course item) async {
-    var name = item.name;
-    var issuer = item.issuer;
-    var date = item.date;
-    var url = item.url;
-    await showFormSheet(
-      context: context,
-      title: item.id == 0 ? 'Add course' : 'Edit course',
-      primaryLabel: 'Done',
-      fields: [
-        AppTextField(
-          label: 'Name',
-          hint: 'AWS Cloud Practitioner',
-          initialValue: name,
-          onChanged: (value) => name = value,
+  Future<void> _open(
+    BuildContext context,
+    CoursesCubit cubit,
+    Course item,
+  ) async {
+    final name = TextEditingController(text: item.name);
+    final issuer = TextEditingController(text: item.issuer);
+    final date = TextEditingController(text: item.date);
+    final url = TextEditingController(text: item.url);
+
+    try {
+      await showFormSheet(
+        context: context,
+        title: item.id == 0 ? 'Add course' : 'Edit course',
+        primaryLabel: 'Done',
+        fields: [
+          AppTextField(
+            label: 'Name',
+            hint: 'AWS Cloud Practitioner',
+            controller: name,
+          ),
+          AppTextField(
+            label: 'From',
+            hint: 'Amazon',
+            controller: issuer,
+          ),
+          AppTextField(
+            label: 'Date',
+            hint: '2024',
+            controller: date,
+          ),
+          AppTextField(
+            label: 'Link',
+            hint: 'credential.net/abc',
+            controller: url,
+            keyboardType: TextInputType.url,
+            textCapitalization: TextCapitalization.none,
+          ),
+        ],
+        onSave: () => cubit.save(
+          item.copyWith(
+            name: name.text.trim(),
+            issuer: issuer.text.trim(),
+            date: date.text.trim(),
+            url: url.text.trim(),
+          ),
         ),
-        AppTextField(
-          label: 'From',
-          hint: 'Amazon',
-          initialValue: issuer,
-          onChanged: (value) => issuer = value,
-        ),
-        AppTextField(
-          label: 'Date',
-          hint: '2024',
-          initialValue: date,
-          onChanged: (value) => date = value,
-        ),
-        AppTextField(
-          label: 'Link',
-          hint: 'credential.net/abc',
-          initialValue: url,
-          onChanged: (value) => url = value,
-          keyboardType: TextInputType.url,
-          textCapitalization: TextCapitalization.none,
-        ),
-      ],
-      onSave: () => cubit.save(
-        item.copyWith(
-          name: name.trim(),
-          issuer: issuer.trim(),
-          date: date.trim(),
-          url: url.trim(),
-        ),
-      ),
-      onDelete: item.id == 0
-          ? null
-          : () {
-              cubit.remove(item);
-              showUndoBar(
-                context: context,
-                message: 'Removed',
-                onUndo: cubit.undoRemove,
-              );
-            },
-    );
+        onDelete: item.id == 0
+            ? null
+            : () {
+                cubit.remove(item);
+                showUndoBar(
+                  context: context,
+                  message: 'Removed',
+                  onUndo: cubit.undoRemove,
+                );
+              },
+      );
+    } finally {
+      disposeSheetControllers([name, issuer, date, url]);
+    }
   }
 }

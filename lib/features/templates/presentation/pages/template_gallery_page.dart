@@ -39,7 +39,22 @@ class _GalleryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TemplateGalleryCubit, TemplateGalleryState>(
+    return BlocConsumer<TemplateGalleryCubit, TemplateGalleryState>(
+      listenWhen: (prev, next) =>
+          next.message != null && next.message != prev.message,
+      listener: (context, state) {
+        final message = state.message;
+        if (message == null) return;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(message),
+              duration: AppDurations.snackBar,
+              persist: false,
+            ),
+          );
+      },
       builder: (context, state) {
         final cubit = context.read<TemplateGalleryCubit>();
         final templates = cubit.registry.all;
@@ -51,6 +66,7 @@ class _GalleryView extends StatelessWidget {
           },
           child: AppScreen(
             title: 'Template',
+            showBanner: true,
             header: const StepHeader(step: 3),
             leading: BackButton(onPressed: () => _goToPrevious(context)),
             primaryLabel: 'Next',

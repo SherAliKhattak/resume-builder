@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,10 +35,15 @@ class _ResumeAppState extends State<ResumeApp> with WidgetsBindingObserver {
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      if (getIt.isRegistered<AppDatabase>()) {
-        getIt<AppDatabase>().customStatement('PRAGMA wal_checkpoint(PASSIVE)');
-      }
+      unawaited(_checkpoint());
     }
+  }
+
+  Future<void> _checkpoint() async {
+    if (!getIt.isRegistered<AppDatabase>()) return;
+    try {
+      await getIt<AppDatabase>().customStatement('PRAGMA optimize');
+    } catch (_) {}
   }
 
   @override

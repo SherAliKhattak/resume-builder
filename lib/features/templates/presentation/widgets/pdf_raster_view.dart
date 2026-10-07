@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 
 import '../../../../app/di.dart';
 import '../../../../app/theme/app_spacing.dart';
+import '../../../../core/errors/error_logger.dart';
 import '../../pdf/pdf_raster_service.dart';
 
 class PdfRasterView extends StatefulWidget {
@@ -83,7 +84,8 @@ class _PdfRasterViewState extends State<PdfRasterView> {
           _error = 'empty';
         }
       });
-    } catch (error) {
+    } catch (error, stack) {
+      logAppError('PdfRasterView.load', error, stack);
       if (!mounted || id != _loadId) return;
       setState(() {
         _error = error;
@@ -219,12 +221,16 @@ class _PdfPageImageState extends State<_PdfPageImage> {
   }
 
   Future<void> _decode() async {
-    final image = await widget.page.toImage();
-    if (!mounted) {
-      image.dispose();
-      return;
+    try {
+      final image = await widget.page.toImage();
+      if (!mounted) {
+        image.dispose();
+        return;
+      }
+      setState(() => _image = image);
+    } catch (error, stack) {
+      logAppError('PdfRasterView.decode', error, stack);
     }
-    setState(() => _image = image);
   }
 
   @override
